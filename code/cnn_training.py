@@ -131,10 +131,12 @@ model.compile(optimizer='adam',
               metrics=['accuracy'])
 
 model.fit(train_dataset_labeled, 
-          epochs=1, 
+          epochs=3, 
           validation_data=val_dataset_labeled,
           shuffle = False, #did our own shuffling with numpy so turning this off to avoid a warning
           steps_per_epoch=train_steps,
           validation_steps=val_steps,)
 
 model.evaluate(test_dataset_labled)
+
+model.save('631-CNN.keras')
