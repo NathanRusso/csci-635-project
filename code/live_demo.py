@@ -32,24 +32,30 @@ def main():
                                      cv.THRESH_BINARY_INV, 
                                      blockSize=21,
                                      C=8)
-        kernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
+
+        # kernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
         # thresh = cv.morphologyEx(thresh, cv.MORPH_CLOSE, kernel)
         # thresh = cv.morphologyEx(thresh, cv.MORPH_OPEN, kernel)
         
-        # edges = cv.Canny(blur, 50, 150)
-        # kernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
-        # edges = cv.morphologyEx(edges, cv.MORPH_CLOSE, kernel)
+        # edges = cv.Canny(blur, 100, 200)
+        # kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5))
+        # thresh = cv.morphologyEx(edges, cv.MORPH_CLOSE, kernel)
 
         contours, _ = cv.findContours(thresh, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
         frame_area = frame.shape[0] * frame.shape[1]
         min_size = frame_area * 0.1
         max_size = frame_area * 0.6
+        min_angle = -110
+        max_angle = -80
         for contour in contours:
             rect = cv.minAreaRect(contour)
-            _, (w, h), _ = rect
-            area = w * h
-
+            _, (w, h), angle = rect
+            
+            if angle < min_angle or angle > max_angle:
+                continue
+            
             # check size of rectangle
+            area = w * h
             if area < min_size or area > max_size:
                 continue
 
