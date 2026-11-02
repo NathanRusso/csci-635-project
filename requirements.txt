@@ -14,3 +14,4 @@ scikit-learn
 # pyarrow
 #dask[complete]
 #dask-ml
+tensorflow
