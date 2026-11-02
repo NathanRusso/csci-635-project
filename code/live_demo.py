@@ -65,10 +65,7 @@ def main():
             if previous_box is None:
                 previous_box = box.astype(np.float32)
             else:
-                previous_box = (
-                    ALPHA * box.astype(np.float32)
-                    + (1 - ALPHA) * previous_box
-                )
+                previous_box = (ALPHA * box.astype(np.float32) + (1 - ALPHA) * previous_box)
 
             smoothed_box = previous_box.astype(np.int32)
 
@@ -77,9 +74,18 @@ def main():
         cv.imshow("testing frame", thresh)
         cv.imshow('Live Demo: Trading Card Classifier', display_frame)
         
+        key = cv.waitKey(1) & 0xFF
+
         # Press Q to quit
-        if cv.waitKey(1) & 0xFF == ord('q'):
+        if key == ord('q'):
             break
+
+        # Press Space to capture card
+        elif key == ord(' '):
+            print("Captured!")
+            # convert to display image grayscale
+            # capture bounding box region as an image
+            # feed image into classifier
 
     cam.release()
     cv.destroyAllWindows()
