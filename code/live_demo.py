@@ -30,8 +30,8 @@ def main():
                                      255, 
                                      cv.ADAPTIVE_THRESH_GAUSSIAN_C, 
                                      cv.THRESH_BINARY_INV, 
-                                     blockSize=11,
-                                     C=4)
+                                     blockSize=21,
+                                     C=8)
         kernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
         # thresh = cv.morphologyEx(thresh, cv.MORPH_CLOSE, kernel)
         # thresh = cv.morphologyEx(thresh, cv.MORPH_OPEN, kernel)
