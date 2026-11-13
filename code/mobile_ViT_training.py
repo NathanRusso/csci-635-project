@@ -4,7 +4,6 @@ os.environ["KERAS_BACKEND"] = "tensorflow"
 import keras
 from keras import layers
 import numpy as np
-import tensorflow as tf
 from keras_vision.MobileViT_v2 import build_MobileViT_v2
 from make_labeled_dataset import make_labeled_dataset
 
@@ -96,7 +95,7 @@ keras.callbacks.ModelCheckpoint("635-MobileVit_v2.keras", save_best_only=True, m
 keras.callbacks.EarlyStopping(patience =3, monitor="val_loss", restore_best_weights=True)
 ]
 
-model.fit(train_dataset_labeled, epochs =1, validation_data=val_dataset_labeled, callbacks= callbacks, shuffle = False)
+model.fit(train_dataset_labeled, epochs =10, validation_data=val_dataset_labeled, callbacks= callbacks, shuffle = False)
 
 test_loss, test_acc = model.evaluate(test_dataset_labled)
 print(f"Test Accuracy: {test_acc:.2%}")
