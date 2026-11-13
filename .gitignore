@@ -9,3 +9,4 @@ _temp/
 train/
 test/
 validation/
+__pycache__/

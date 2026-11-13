@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from tensorflow import keras
-
+from make_labeled_dataset import make_labeled_dataset
 train_mtg= np.memmap(
     "data/train/train_mtg.dat",
     dtype=np.float32,
@@ -59,43 +59,6 @@ test_ygo= np.memmap(
     shape=(2919,350_000),
 )
 
-def make_labeled_dataset(mtg, pkm, ygo, batch_size=32,shuffle= False ):
-    """
-    This function takes in an train/test/validation split from each of the card games, a batch size, and bool to determine 
-    if we need to shuffle the dataset.
-   
-    It then processes them in batches in order to apply a label for each class so we can train the model with TensorFlow
-
-    If prompted it can shuffle the dataset so the model can get a variety of classes instead of each one sequentially.
-    This can reduce potentially reduce bias in the model
-
-
-    It returns a tensorflow dataset that is processed from the from_generator function
-    """
-
-    
-    arrays= [mtg,pkm,ygo]
-    def batches():
-        order = [
-            (class_id, start)
-            for class_id, data in enumerate(arrays)
-            for start in range(0, len(data), batch_size)
-        ]
-
-        if shuffle:
-            np.random.shuffle(order)
-
-        for class_id, start in order:
-            rows = np.asarray(arrays[class_id][start:start+batch_size])
-            images = rows.reshape(-1, 700,500,1)
-            labels = np.full(len(rows),class_id, dtype=np.int32)
-            yield images, labels
-
-    return tf.data.Dataset.from_generator(batches,
-                                          output_signature=(
-                                              tf.TensorSpec((None,700, 500, 1), tf.float32),
-                                              tf.TensorSpec((None,), tf.int32)
-                                          )).prefetch(tf.data.AUTOTUNE)
 
 # size 32 batches proved to be the perfect balance between number of batches and time per batch.
 # Average of 700ms per step with size 32 and anything more is 2 seconds or more per batch
@@ -107,11 +70,11 @@ val_dataset_labeled = make_labeled_dataset( val_mtg, val_pkm, val_ygo, batch_siz
 test_dataset_labled = make_labeled_dataset( test_mtg, test_pkm, test_ygo, batch_size=32)
 
 train_steps = sum(
-                (len(data)+ 31)
+                (len(data)+ 31) // 32
                 for data in (train_mtg, train_pkm, train_ygo)
                 )
 val_steps = sum(
-                (len(data)+ 31)
+                (len(data)+ 31) // 32
                 for data in (val_mtg, val_pkm, val_ygo)
                 )
 
