@@ -102,4 +102,4 @@ model.fit(train_dataset_labeled,
 
 model.evaluate(test_dataset_labled)
 
-model.save('635-CNN.keras')
+model.save('data/635-CNN.keras')

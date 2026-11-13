@@ -91,7 +91,7 @@ model.compile(
 
 callbacks =[
 keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.3, patience =2),
-keras.callbacks.ModelCheckpoint("635-MobileVit_v2.keras", save_best_only=True, monitor="val_accuracy"),
+keras.callbacks.ModelCheckpoint("data/635-MobileVit_v2.keras", save_best_only=True, monitor="val_accuracy"),
 keras.callbacks.EarlyStopping(patience =3, monitor="val_loss", restore_best_weights=True)
 ]
 
