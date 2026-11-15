@@ -1,9 +1,16 @@
 import cv2 as cv
 import numpy as np
+from tensorflow import keras
 
 ASPECT_RATIO = 2.5 / 3.5    # trading cards are about 5:7 or 2.5 x 3.5 inches
-TOLERANCE = 0.1             # allows for some size differences or tilt
+TOLERANCE = 0.15             # allows for some size differences or tilt
 ALPHA = 0.7                 # box smoothing parameter
+
+class_names = {
+    0: "Magic: The Gathering",
+    1: "Pokemon",
+    2: "Yu-Gi-Oh"
+}
 
 def main():
     cam = cv.VideoCapture(0)
@@ -13,6 +20,10 @@ def main():
         return
 
     previous_box = None
+
+    # using the CNN model
+    model = keras.models.load_model("csci-635-project/635-CNN.keras")
+    print(model.summary())
 
     while True:
         ret, frame = cam.read()
@@ -33,7 +44,7 @@ def main():
                                      blockSize=21,
                                      C=8)
 
-        # kernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
+        # kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5))
         # thresh = cv.morphologyEx(thresh, cv.MORPH_CLOSE, kernel)
         # thresh = cv.morphologyEx(thresh, cv.MORPH_OPEN, kernel)
         
@@ -88,13 +99,46 @@ def main():
 
         # Press Space to capture card
         elif key == ord(' '):
+            if previous_box is None:
+                print("No card found!")
+                continue
+
             print("Captured!")
-            # convert to display image grayscale
-            # capture bounding box region as an image
-            # feed image into classifier
+
+            min_x, min_y = np.min(previous_box, axis=0)
+            max_x, max_y = np.max(previous_box, axis=0)
+            x = int(min_x)
+            y = int(min_y)
+            width = int(max_x - min_x)
+            height = int(max_y - min_y)
+
+            card_box = gray[y:y+height, x:x+width]
+
+            cv.imshow("card crop", card_box)
+
+            # CNN expects shape (None, 700, 500, 1)
+            resized = cv.resize(card_box, (500, 700))
+            resized = resized.astype(np.float32) / 255.0
+
+            resized = np.expand_dims(resized, axis=-1)
+            input_image = np.expand_dims(resized, axis=0)
+
+            # Get card prediction
+            prediction = model.predict(input_image, verbose=0)
+            predicted_class = np.argmax(prediction[0])
+            predicted_label = class_names[predicted_class]
+
+            # Get confidence
+            confidence = prediction[0][predicted_class]
+
+            print(f"Prediction: {predicted_label}")
+            print(f"Confidence: {confidence * 100:.2f}%")
+
 
     cam.release()
     cv.destroyAllWindows()
+
+
 
 
 
