@@ -22,7 +22,12 @@ def main():
     previous_box = None
 
     # using the CNN model
-    model = keras.models.load_model("csci-635-project/635-CNN.keras")
+    model = keras.models.load_model("data/635-CNN.keras")
+
+    # # using the Mobile ViT model
+    # # got a ton of warnings/errors, not sure why
+    # model = keras.models.load_model("data/635-MobileVit_v2.keras")
+
     print(model.summary())
 
     while True:
