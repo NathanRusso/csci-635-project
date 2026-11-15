@@ -123,10 +123,11 @@ def main():
 
             # CNN expects shape (None, 700, 500, 1)
             resized = cv.resize(card_box, (500, 700))
-            resized = resized.astype(np.float32) / 255.0
+            # resized = resized.astype(np.float32) / 255.0
+            normed = cv.normalize(resized, dst=None, alpha=0.0, beta=1.0, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
 
-            resized = np.expand_dims(resized, axis=-1)
-            input_image = np.expand_dims(resized, axis=0)
+            normed = np.expand_dims(normed, axis=-1)
+            input_image = np.expand_dims(normed, axis=0)
 
             # Get card prediction
             prediction = model.predict(input_image, verbose=0)
