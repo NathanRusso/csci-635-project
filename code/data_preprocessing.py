@@ -156,61 +156,6 @@ def train_test_validation_split(card_count: int, data_memmaps: list):
         print(f"\tTime Elapsed: {time_end - time_start}s.")
 
 
-"""
-def create_dataframe(card_lists: list, card_labels: list[str]):
-    ""
-    Creates a dataframe mapping card vectors to their label.
-
-    Args:
-        card_lists (list): A list of list for each set of card vectors.
-        card_labels (list[str]): A list of labels for each card type.
-
-    Returns:
-        A Pandas dataframe will all card mappings.
-    ""
-    # Get the number of labels per card
-    start = t.perf_counter()
-    card_counts = [len(card_list) for card_list in card_lists]
-    label_data = np.repeat(card_labels, card_counts)   # Repeats each label count times
-
-    # Combine all of the card vectors together
-    card_data = np.memmap(TEMP_ALL, dtype=np.float32, mode='w+', shape=(sum(card_counts), IMAGE_DATA_SIZE))
-    card_index = 0
-    for card_count, card_list in zip(card_counts, card_lists):
-        card_data[card_index : card_index + card_count, ...] = card_list
-        card_index += card_count
-    card_data.flush()
-    end = t.perf_counter()
-    print(f"\tTime Elapsed: {end - start}s.")
-
-    ""
-    # Create the dataframe and filters out bad data
-    start = t.perf_counter()
-    card_data_dask_array = da.from_array(card_data, chunks=(sum(card_counts), IMAGE_DATA_SIZE))
-    dataframe = dd.from_dask_array(card_data_dask_array, columns=[f"card_pxl_{i+1}" for i in range(IMAGE_DATA_SIZE)])
-    label_dask_dask_array = da.from_array(label_data, chunks=(len(label_data),))
-    dataframe['label'] = label_dask_dask_array
-    valid_rows_mask = dataframe[dataframe.columns[1:]].any(axis=1)  # Creates a mask for rows: Not all 0s (True), all 0s (False)
-    dataframe = dataframe[valid_rows_mask]                          # Removes any all 0 rows from the dataframe
-    ""
-
-    # Create the dataframe and filters out bad data
-    start = t.perf_counter()
-    dataframe = pd.DataFrame(card_data, columns=[f"card_pxl_{i+1}" for i in range(IMAGE_DATA_SIZE)])
-    dataframe.insert(0, 'label', label_data)
-    valid_rows_mask = dataframe[dataframe.columns[1:]].any(axis=1)  # Creates a mask for rows: Not all 0s (True), all 0s (False)
-    dataframe = dataframe[valid_rows_mask]                          # Removes any all 0 rows from the dataframe
-
-    # Remove the file link and delete the temporary all file
-    if hasattr(card_data, '_mmap'): card_data._mmap.close()
-    del card_data
-    if os.path.exists(TEMP_ALL): os.remove(TEMP_ALL)
-    end = t.perf_counter()
-    print(f"\tTime Elapsed: {end - start}s.")
-
-    return dataframe
-"""
-
 def main():
     """
     Prepares the data used to analyze the Magic: The Gathering, Pokemon, and Yu-Gi-Oh card images.
@@ -247,30 +192,6 @@ def main():
     if os.path.exists(TEMP_MTG): os.remove(TEMP_MTG)
     if os.path.exists(TEMP_PKM): os.remove(TEMP_PKM)
     if os.path.exists(TEMP_YGO): os.remove(TEMP_YGO)
-
-    """
-    # Add the card vectors into a Pandas dataframe
-    print("[INFO] Creating Pandas dataframe...")
-    card_lists = [mtg_cards, pkm_cards, ygo_cards]
-    card_labels = ['MTG', 'PKM', 'YGO']
-    df = create_dataframe(card_lists, card_labels)
-
-    # Create the training, testing, and validation sets.
-    # Train/Test is split 80/20 on total, and Train/Validation is split 80/20 on Train
-    X = df.drop(columns=['label']).values
-    y = df['label'].replace({
-        'MTG': CardType.MTG.value,
-        'PKM': CardType.PKM.value,
-        'YGO': CardType.YGO.value
-    }).values
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=35, stratify=y)
-    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=35, stratify=y_train)
-
-    # Balanced the class weighs since each set of cards has a different number of images
-    classes = np.array([CardType.MTG.value, CardType.PKM.value, CardType.YGO.value])
-    class_weights_array = compute_class_weight(class_weight='balanced', classes=classes, y=y)
-    class_weights_dict = dict(zip(classes, class_weights_array))
-    """
 
 
 if __name__ == "__main__":
