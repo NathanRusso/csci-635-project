@@ -2,12 +2,39 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 import numpy as np
 import matplotlib.pyplot as plt
+from tensorflow import keras
 
 
-NUM_SAMPLES = 100 
+NUM_SAMPLES = 1000 
+MODEL_PATH = "data/635-CNN.keras"
 
 
-def visualize_pca(X, y):
+def standard_pca(X):
+    X_std = StandardScaler().fit_transform(X)
+    pca = PCA(n_components=2)
+    return pca.fit_transform(X_std)
+
+def cnn_embedding_pca(X):
+    model = keras.models.load_model(MODEL_PATH)
+
+    # Extract output of second MaxPooling layer
+    feature_maps = model.layers[3].output
+    embeddings = keras.layers.GlobalAveragePooling2D()(feature_maps)
+
+    embedding_model = keras.Model(
+        inputs=model.inputs,
+        outputs=embeddings
+    )
+
+    # Extract CNN embeddings
+    X_images = X.reshape(-1, 700, 500, 1)
+    X_embeddings = embedding_model.predict(X_images)
+
+    # Apply PCA
+    return standard_pca(X_embeddings)
+
+
+def visualize_pca(X, y, title):
     class_names = ["Magic: The Gathering", "Pokemon", "Yu-Gi-Oh"]
     colors = ["red", "blue", "green"]
 
@@ -27,7 +54,7 @@ def visualize_pca(X, y):
 
     plt.xlabel("Principal Component 1")
     plt.ylabel("Principal Component 2")
-    plt.title("PCA of Trading Card Image Features")
+    plt.title(title)
     plt.legend()
     plt.grid(alpha=0.2)
 
@@ -65,16 +92,17 @@ def main():
 
     # create X and y using random samples
     X = np.concatenate([mtg_samples, pkm_samples, ygo_samples], axis=0)
-    y = np.array([0] * 100 + [1] * 100 + [2] * 100)
+    y = np.array([0] * NUM_SAMPLES + [1] * NUM_SAMPLES + [2] * NUM_SAMPLES)
 
-    # Apply PCA
-    # X_std = StandardScaler().fit_transform(X)
-    pca = PCA(n_components=2)
-    # X_pca = pca.fit_transform(X_std)
-    X_pca = pca.fit_transform(X)    # trying no standardization, since we normalized already
+    # Apply standard PCA
+    X_pca_raw = standard_pca(X)
+
+    # Apply PCA over CNN embeddings
+    X_pca_cnn = cnn_embedding_pca(X)
 
     # plot samples in PCA space
-    visualize_pca(X_pca, y)
+    visualize_pca(X_pca_raw, y, "PCA of Raw Images")
+    visualize_pca(X_pca_cnn, y, "PCA of CNN Embeddings")
 
     
 if __name__ == "__main__":

@@ -9,4 +9,5 @@ _temp/
 train/
 test/
 validation/
+pca_plots/
 __pycache__/
