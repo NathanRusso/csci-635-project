@@ -3,6 +3,7 @@ File to create and train a Visual Transformer (ViT) model.
 """
 
 import numpy as np
+import math
 import cv2 as cv
 from enum import Enum
 import keras
@@ -98,10 +99,17 @@ def test_generator():
 
 def image_resizer(images, labels):
     """
-    Converts images from (350_000,) to (700, 500), and then compresses them to (384, 384).
+    Resizes the images for the ViT.
+
+    1. (350_000,) to (700, 500, 1)
+    2. (700, 500, 1) to (384, 384)
+    3. (384, 384, 1) [0, 1] to (384, 384, 1) [-1, 1]
+    3. (384, 384, 1) to (384, 384, 3) where the 3 channels are the same.
     """
-    images = tf.reshape(images, size=(-1, 700, 500, 1))
-    images = tf.image.resize(images, shape=(384, 384), method="area")
+    images = tf.reshape(images, shape=(-1, 700, 500, 1))
+    images = tf.image.resize(images, size=(384, 384), method="area")
+    images = images * 2 - 1
+    images = tf.image.grayscale_to_rgb(images)
     return images, labels
 
 
@@ -113,8 +121,10 @@ def create_train_vit():
     """
 
     # Downloads the 32x32 patch size, 384x384 image large ViT model
-    model = keras_hub.models.Backbone().from_preset(
+    #model.backbone.trainable = False
+    model = keras_hub.models.ViTImageClassifier.from_preset(
         preset="vit_large_patch32_384_imagenet",
+        num_classes=3,
         load_weights=True
     )
 
@@ -127,14 +137,8 @@ def create_train_vit():
 
     # Output Generator Signature: [(350,000 features), (1 target class)]
     output_generator_signature = (
-        tf.TensorSpec(
-            shape=(SIZE_FEATURE,),
-            dtype=tf.float32
-        ),
-        tf.TensorSpec(
-            shape=(1,),
-            dtype=tf.float32
-        )
+        tf.TensorSpec(shape=(SIZE_FEATURE,), dtype=tf.float32),
+        tf.TensorSpec(shape=(), dtype=tf.int32)
     )
 
     # Callback to stop the model if validation loss stops improving (prevent overfitting)
@@ -148,23 +152,25 @@ def create_train_vit():
 
     # Set up the train dataset
     train_dataset = tf.data.Dataset.from_generator(train_generator, output_signature=output_generator_signature
-    ).shuffle(buffer_size=1000, reshuffle_each_iteration=True
+    ).shuffle(buffer_size=SIZE_BATCH, reshuffle_each_iteration=True
     ).batch(SIZE_BATCH
     ).map(image_resizer, num_parallel_calls=1
-    ).prefetch(1)
+    ).prefetch(1
+    ).apply(tf.data.experimental.assert_cardinality(math.ceil(COUNT_TRAIN * 3 / SIZE_BATCH)))
 
     # Set up the validation dataset
     validation_dataset = tf.data.Dataset.from_generator(validation_generator, output_signature=output_generator_signature
-    ).shuffle(buffer_size=1000, reshuffle_each_iteration=True
     ).batch(SIZE_BATCH
     ).map(image_resizer, num_parallel_calls=1
-    ).prefetch(1)
+    ).prefetch(1
+    ).apply(tf.data.experimental.assert_cardinality(math.ceil(COUNT_VALIDATION * 3 / SIZE_BATCH)))
 
     # Set up the train dataset
     test_dataset = tf.data.Dataset.from_generator(test_generator, output_signature=output_generator_signature
     ).batch(SIZE_BATCH
     ).map(image_resizer, num_parallel_calls=1
-    ).prefetch(1)
+    ).prefetch(1
+    ).apply(tf.data.experimental.assert_cardinality(math.ceil(COUNT_TEST * 3 / SIZE_BATCH)))
 
     # Trains the model on the training and validation sets
     model.fit(
