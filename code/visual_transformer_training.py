@@ -12,7 +12,7 @@ import tensorflow as tf
 
 
 # Data Model Path
-PATH_MODEL = 'data/ViT.keras'
+PATH_MODEL = 'data/635-ViT.keras'
 
 # Train Paths
 PATH_TRAIN = 'data/train'
@@ -123,12 +123,14 @@ def create_train_vit():
     """
 
     # Downloads the 32x32 patch size, 384x384 image large ViT model
-    #model.backbone.trainable = False
     model = keras_hub.models.ViTImageClassifier.from_preset(
         preset="vit_base_patch16_224_imagenet",
         num_classes=3,
         load_weights=True
     )
+
+    # Freezes weights and biases for the model besides the Classification head.
+    model.backbone.trainable = False    # I need this set back to true at some point.
 
     # Sets the model optimizer, loss, and metric
     model.compile(
