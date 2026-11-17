@@ -32,18 +32,20 @@ PATH_VALIDATION_MTG = 'data/validation/validation_mtg.dat'
 PATH_VALIDATION_PKM = 'data/validation/validation_pkm.dat'
 PATH_VALIDATION_YGO = 'data/validation/validation_ygo.dat'
 
-# Card Class Counts and Feature Sizes
+# Card Class Counts, Feature Sizes, and more
 COUNT_TRAIN = 9343
 COUNT_TEST = 2919
 COUNT_VALIDATION = 2335
-COUNT_PATCH = 194   # (224/16) x (224/16) = 14 x 14 = 196
+COUNT_PATCH = 196  # (224/16) x (224/16) = 14 x 14 = 196
 SIZE_FEATURE = 350_000
 SIZE_FEATURE_WIDTH = 500
 SIZE_FEATURE_HEIGHT = 700
 SIZE_FEATURE_COMPRESSED = 224
 SIZE_BATCH = 32
 SIZE_PATCH = 16
-EPOCHS = 1
+EPOCHS_FROZEN = 3
+EPOCHS_UNFROZEN = 7
+EPOCHS_TEST = 1     # Replace EPOCHS_FROZEN and EPOCHS_UNFROZEN with this for testing
 
 
 # Train Memmaps
@@ -71,7 +73,7 @@ class CardType(Enum):
 
 def train_generator():
     """
-    Train data generator used for selection/iteration.
+    Train data generator used for data selection/iteration.
     """
     for i in range(COUNT_TRAIN):
         yield train_mtg[i], CardType.MTG.value
@@ -81,7 +83,7 @@ def train_generator():
 
 def validation_generator():
     """
-    Validation data generator used for selection/iteration.
+    Validation data generator used for data selection/iteration.
     """
     for i in range(COUNT_VALIDATION):
         yield validation_mtg[i], CardType.MTG.value
@@ -91,7 +93,7 @@ def validation_generator():
 
 def test_generator():
     """
-    test data generator used for evaluation.
+    Test data generator used for data selection/iteration.
     """
     for i in range(COUNT_TEST):
         yield test_mtg[i], CardType.MTG.value
@@ -107,6 +109,13 @@ def image_resizer(images, labels):
     2. (700, 500, 1) to (224, 224)
     3. (224, 224, 1) [0, 1] to (224, 224, 1) [-1, 1]
     4. (224, 224, 1) to (224, 224, 3) where the 3 channels are the same.
+
+    Args:
+        images: TensorFlow Tensor containing a batch of images.
+        labels: TensorFlow Tensor containing the corresponding batch of labels.
+
+    Returns:
+        A tuple containing the reshaped images Tensor and the corresponding labels Tensor.
     """
     images = tf.reshape(images, shape=(-1, SIZE_FEATURE_HEIGHT, SIZE_FEATURE_WIDTH, 1))
     images = tf.image.resize(images, size=(SIZE_FEATURE_COMPRESSED, SIZE_FEATURE_COMPRESSED), method="area")
@@ -115,44 +124,19 @@ def image_resizer(images, labels):
     return images, labels
 
 
-def create_train_vit():
+def create_datasets_vit():
     """
-    Loads a pretrained ViT and trains it on our card data.
-    Saves the model to the data file.
-    https://www.kaggle.com/models/keras/vit/keras/vit_base_patch16_224_imagenet
+    Creates the Train, Test, and Validation sets needed for the ViT.
+    They include both the features and targets.
+
+    Returns:
+        A 3-tuple containing the train, test, and validation datasets.
     """
-
-    # Downloads the 32x32 patch size, 384x384 image large ViT model
-    model = keras_hub.models.ViTImageClassifier.from_preset(
-        preset="vit_base_patch16_224_imagenet",
-        num_classes=3,
-        load_weights=True
-    )
-
-    # Freezes weights and biases for the model besides the Classification head.
-    model.backbone.trainable = False    # I need this set back to true at some point.
-
-    # Sets the model optimizer, loss, and metric
-    model.compile(
-        optimizer="adam",
-        loss="sparse_categorical_crossentropy",
-        metrics=["accuracy"]
-    )
-
     # Output Generator Signature: [(350,000 features), (1 target class)]
     output_generator_signature = (
         tf.TensorSpec(shape=(SIZE_FEATURE,), dtype=tf.float32),
         tf.TensorSpec(shape=(), dtype=tf.int32)
     )
-
-    # Callback to stop the model if validation loss stops improving (prevent overfitting)
-    callbacks = [
-        keras.callbacks.EarlyStopping(
-            monitor="val_loss",
-            patience=5,
-            restore_best_weights=True
-        )
-    ]
 
     # Set up the train dataset
     train_dataset = tf.data.Dataset.from_generator(train_generator, output_signature=output_generator_signature
@@ -176,16 +160,77 @@ def create_train_vit():
     ).prefetch(1
     ).apply(tf.data.experimental.assert_cardinality(math.ceil(COUNT_TEST * 3 / SIZE_BATCH)))
 
+    return train_dataset, test_dataset, validation_dataset
+
+
+def create_train_vit():
+    """
+    Loads a pretrained ViT and trains it on our card data.
+    Saves the model to the data file.
+    https://www.kaggle.com/models/keras/vit/keras/vit_base_patch16_224_imagenet
+    """
+
+    # Callback to stop the model if validation loss stops improving (prevent overfitting)
+    model_callbacks = [
+        keras.callbacks.EarlyStopping(monitor="val_loss", patience=3, restore_best_weights=True)
+    ]
+
+    # Train, Test, and Validation datasets used in the model
+    train_dataset, test_dataset, validation_dataset = create_datasets_vit()
+
+    # Downloads the 32x32 patch size, 224x224 image large ViT model
+    model = keras_hub.models.ViTImageClassifier.from_preset(
+        preset="vit_base_patch16_224_imagenet",
+        num_classes=3,
+        load_weights=True,
+        activation="softmax"
+    )
+
+
+    # Freezes weights and biases for the model besides the classification head
+    model.backbone.trainable = False
+
+    # Sets the model optimizer, loss, and metric
+    model.compile(
+        optimizer=keras.optimizers.AdamW(learning_rate=0.001, weight_decay=0.004),      # Default params
+        loss=keras.losses.SparseCategoricalCrossentropy(),                              # Default params
+        metrics=["accuracy"]
+    )
+
     # Trains the model on the training and validation sets
     model.fit(
         x=train_dataset,
-        epochs=EPOCHS,
+        #epochs=EPOCHS_FROZEN,
+        epochs=EPOCHS_TEST,
         validation_data=validation_dataset,
-        callbacks=callbacks,
+        callbacks=model_callbacks,
     )
 
+
+    # Unfreezes weights and biases so the entire model can change
+    model.backbone.trainable = True
+
+    # Sets the model optimizer, loss, and metric ~ Makes sure 'trainable' is updated
+    model.compile(
+        optimizer=keras.optimizers.AdamW(learning_rate=0.00001, weight_decay=0.004),    # Not default learning rate
+        loss=keras.losses.SparseCategoricalCrossentropy(),                              # Default params
+        metrics=["accuracy"]
+    )
+
+    # Trains the model on the training and validation sets ~ Continues the model
+    model.fit(
+        x=train_dataset,
+        #epochs=EPOCHS_UNFROZEN,
+        epochs=EPOCHS_TEST,
+        validation_data=validation_dataset,
+        callbacks=model_callbacks,
+    )
+
+
     # Checks the model's performance on the test data 
-    model.evaluate(x=test_dataset)
+    test_loss, test_accuracy = model.evaluate(x=test_dataset)
+    print(f"Test Loss: {test_loss:.3f}")
+    print(f"Test Accuracy: {test_accuracy:.3%}")
 
     # Saves the model to be used later.
     model.save(PATH_MODEL)
