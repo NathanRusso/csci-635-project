@@ -36,11 +36,13 @@ PATH_VALIDATION_YGO = 'data/validation/validation_ygo.dat'
 COUNT_TRAIN = 9343
 COUNT_TEST = 2919
 COUNT_VALIDATION = 2335
+COUNT_PATCH = 194   # (224/16) x (224/16) = 14 x 14 = 196
 SIZE_FEATURE = 350_000
 SIZE_FEATURE_WIDTH = 500
 SIZE_FEATURE_HEIGHT = 700
+SIZE_FEATURE_COMPRESSED = 224
 SIZE_BATCH = 32
-SIZE_PATH = 25
+SIZE_PATCH = 16
 EPOCHS = 1
 
 
@@ -102,12 +104,12 @@ def image_resizer(images, labels):
     Resizes the images for the ViT.
 
     1. (350_000,) to (700, 500, 1)
-    2. (700, 500, 1) to (384, 384)
-    3. (384, 384, 1) [0, 1] to (384, 384, 1) [-1, 1]
-    3. (384, 384, 1) to (384, 384, 3) where the 3 channels are the same.
+    2. (700, 500, 1) to (224, 224)
+    3. (224, 224, 1) [0, 1] to (224, 224, 1) [-1, 1]
+    4. (224, 224, 1) to (224, 224, 3) where the 3 channels are the same.
     """
-    images = tf.reshape(images, shape=(-1, 700, 500, 1))
-    images = tf.image.resize(images, size=(384, 384), method="area")
+    images = tf.reshape(images, shape=(-1, SIZE_FEATURE_HEIGHT, SIZE_FEATURE_WIDTH, 1))
+    images = tf.image.resize(images, size=(SIZE_FEATURE_COMPRESSED, SIZE_FEATURE_COMPRESSED), method="area")
     images = images * 2 - 1
     images = tf.image.grayscale_to_rgb(images)
     return images, labels
@@ -117,13 +119,13 @@ def create_train_vit():
     """
     Loads a pretrained ViT and trains it on our card data.
     Saves the model to the data file.
-    https://www.kaggle.com/models/keras/vit/keras/vit_large_patch32_384_imagenet/3
+    https://www.kaggle.com/models/keras/vit/keras/vit_base_patch16_224_imagenet
     """
 
     # Downloads the 32x32 patch size, 384x384 image large ViT model
     #model.backbone.trainable = False
     model = keras_hub.models.ViTImageClassifier.from_preset(
-        preset="vit_large_patch32_384_imagenet",
+        preset="vit_base_patch16_224_imagenet",
         num_classes=3,
         load_weights=True
     )
