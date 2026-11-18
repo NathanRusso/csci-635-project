@@ -27,7 +27,7 @@ card_map = {
 }
 
 
-def cnn_classification(images):
+def cnn_classify(images):
     """
     Classifies each of the images using a CNN.
 
@@ -41,7 +41,7 @@ def cnn_classification(images):
     return [[0, 0, 0] for _ in range(len(images))]
 
 
-def vit_classification(images):
+def vit_classify(images):
     """
     Classifies each of the images using a ViT.
 
@@ -59,7 +59,7 @@ def vit_classification(images):
     return model.predict(images, verbose=0)
 
 
-def mobilevit_classification(images):
+def mobilevit_classify(images):
     """
     Classifies each of the images using a MobileViT.
 
@@ -75,22 +75,40 @@ def mobilevit_classification(images):
 
 def classify(images):
     """
+    Classifies each of the images for each model and returns their predictions.
+
+    Args:
+        images: Numpy array of 700x500 images
+
+    Returns:
+        A 3-tuple containing a lists of softmax predictions for each model
+    """
+    # Gets the softmax classification arrays from the models
+    predictions_cnn = cnn_classify(images)
+    predictions_vit = vit_classify(images)
+    predictions_mobilevit = mobilevit_classify(images)
+
+    # Returns the predictions
+    return predictions_cnn, predictions_vit, predictions_mobilevit
+
+
+def display_classify(images, images_paths):
+    """
     Classifies each of the images and displays their predictions.
 
     Args:
         images: Numpy array of 700x500 images
+        image_paths: A list of the string image paths
     """
     # Gets the softmax classification arrays from the models
-    predictions_cnn = cnn_classification(images)
-    predictions_vit = vit_classification(images)
-    predictions_mobilevit = mobilevit_classification(images)
+    predictions_cnn, predictions_vit, predictions_mobilevit = classify(images)
 
     # Displays the output for each classification
     for i in range(len(images)):
         prediction_cnn = np.round(predictions_cnn[i], decimals=3)
         prediction_vit = np.round(predictions_vit[i] * 100, decimals=3)
         prediction_mobilevit = np.round(predictions_mobilevit[i], decimals=3)
-        print(f"\nClassification Image #{i+1}:")
+        print(f"\nClassification Image #{i+1}: {images_paths[i]}")
         print(f"\tCNN:          {prediction_cnn}, {card_map[np.argmax(prediction_cnn)]}")
         print(f"\tViT:          {prediction_vit}, {card_map[np.argmax(prediction_vit)]}")
         print(f"\tMobileViT:    {prediction_mobilevit}, {card_map[np.argmax(prediction_mobilevit)]}")
@@ -112,11 +130,13 @@ def main():
     args = parser.parse_args()
     image_paths = args.images
     images = []
+    images_paths_selected = []
     for path in image_paths:
         image = cv.imread(path, cv.IMREAD_GRAYSCALE)
         if image is None:
             print(f"[ERROR] Could not get image located at {path}!")
             continue
+        images_paths_selected.append(path)
         if image.shape[2:] != (SIZE_FEATURE_HEIGHT, SIZE_FEATURE_WIDTH):
             image = cv.resize(image, (SIZE_FEATURE_WIDTH, SIZE_FEATURE_HEIGHT), interpolation=cv.INTER_AREA)
         #card = card.ravel()
@@ -125,7 +145,7 @@ def main():
     images = np.array(images)
 
     # Display the predictions for the cards
-    classify(images)
+    display_classify(images, images_paths_selected)
 
 
 if __name__ == "__main__":
