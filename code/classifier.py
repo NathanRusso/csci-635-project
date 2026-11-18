@@ -7,6 +7,7 @@ import cv2 as cv
 import keras
 import numpy as np
 import tensorflow as tf
+from keras_vision.MobileViT_v2 import build_MobileViT_v2
 
 
 # The size used for resizing
@@ -35,10 +36,10 @@ def cnn_classify(images):
         images: Numpy array of 700x500 images
 
     Returns:
-        ...
+        Numpy array of softmax predictions
     """
-    #model = keras.models.load_model(PATH_CNN)
-    return [[0, 0, 0] for _ in range(len(images))]
+    model = keras.models.load_model(PATH_CNN)
+    return model.predict(images, verbose=0)
 
 
 def vit_classify(images):
@@ -67,10 +68,30 @@ def mobilevit_classify(images):
         images: Numpy array of 700x500 images
 
     Returns:
-        ...
+        Numpy array of softmax predictions
     """
-    #model = keras.models.load_model(PATH_MOBILEVIT)
-    return [[0, 0, 0] for _ in range(len(images))]
+    # Build the exact architecture saved in PATH_MOBILEVIT 
+    base_model = build_MobileViT_v2(
+        input_shape=(256, 192, 1),
+        width_multiplier=0.5,
+        num_classes=3,
+        classifier_head_activation="softmax",
+        pretrained=False,
+    )
+    model = keras.Sequential([
+        keras.layers.Input(shape=(SIZE_FEATURE_HEIGHT, SIZE_FEATURE_WIDTH, 1)),
+        keras.layers.Resizing(256, 192),
+        base_model,
+    ])
+
+    # Run a dummy forward pass so all internal sub-layers build their weight variables
+    model(np.zeros((1, SIZE_FEATURE_HEIGHT, SIZE_FEATURE_WIDTH, 1), dtype="float32"), training=False)
+
+    # Load the trained weights directly from the .keras archive
+    model.load_weights(PATH_MOBILEVIT)
+
+    images = tf.reshape(images, shape=(-1, SIZE_FEATURE_HEIGHT, SIZE_FEATURE_WIDTH, 1))
+    return model.predict(images, verbose=0)
 
 
 def classify(images):
@@ -81,14 +102,12 @@ def classify(images):
         images: Numpy array of 700x500 images
 
     Returns:
-        A 3-tuple containing a lists of softmax predictions for each model
+        A 3-tuple containing lists of softmax predictions for each model
     """
-    # Gets the softmax classification arrays from the models
     predictions_cnn = cnn_classify(images)
     predictions_vit = vit_classify(images)
     predictions_mobilevit = mobilevit_classify(images)
 
-    # Returns the predictions
     return predictions_cnn, predictions_vit, predictions_mobilevit
 
 
