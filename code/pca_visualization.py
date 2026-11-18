@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from tensorflow import keras
 
 
-NUM_SAMPLES = 1000 
+NUM_SAMPLES = 100
 MODEL_PATH = "data/635-CNN.keras"
 
 
