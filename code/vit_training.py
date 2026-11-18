@@ -4,7 +4,6 @@ File to create and train a Vision Transformer (ViT) model.
 
 import numpy as np
 import math
-import cv2 as cv
 from enum import Enum
 import keras
 import keras_hub
