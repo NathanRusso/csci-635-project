@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+import config as cf
 
 def make_labeled_dataset(mtg, pkm, ygo, batch_size=32,shuffle= False ):
     """
@@ -33,13 +34,13 @@ def make_labeled_dataset(mtg, pkm, ygo, batch_size=32,shuffle= False ):
             batch_lbls=[]
             for class_id, start in chunks[i:i+3]:
                 rows = np.asarray(arrays[class_id][start:start+batch_size])
-                batch_imgs.append( rows.reshape(-1, 700,500,1))
+                batch_imgs.append( rows.reshape(-1, cf.SIZE_FEATURE_HEIGHT, cf.SIZE_FEATURE_WIDTH, 1))
                 batch_lbls.append(np.full(len(rows),class_id, dtype=np.int32))
             yield np.concatenate(batch_imgs, axis=0), np.concatenate(batch_lbls, axis=0)
 
     return tf.data.Dataset.from_generator(batches,
                                           output_signature=(
-                                              tf.TensorSpec((None,700, 500, 1), tf.float32),
+                                              tf.TensorSpec((None, cf.SIZE_FEATURE_HEIGHT, cf.SIZE_FEATURE_WIDTH, 1), tf.float32),
                                               tf.TensorSpec((None,), tf.int32)
                                           )).prefetch(tf.data.AUTOTUNE)
 

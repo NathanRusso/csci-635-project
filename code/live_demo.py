@@ -1,6 +1,7 @@
 import cv2 as cv
 import numpy as np
 import keras
+import config as cf
 # from keras_vision.MobileViT_v2.base_layers import ConvLayer, InvertedResidualBlock
 # from keras_vision.MobileViT_v2.mobile_vit_v2_block import MobileViT_v2_Block
 
@@ -134,7 +135,7 @@ def main():
             cv.imshow("card crop", card_box)
 
             # CNN expects shape (None, 700, 500, 1)
-            resized = cv.resize(card_box, (500, 700))
+            resized = cv.resize(card_box, (cf.SIZE_FEATURE_WIDTH, cf.SIZE_FEATURE_HEIGHT))
             normed = cv.normalize(resized, dst=None, alpha=0.0, beta=1.0, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
 
             normed = np.expand_dims(normed, axis=-1)

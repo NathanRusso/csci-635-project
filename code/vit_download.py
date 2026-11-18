@@ -3,7 +3,7 @@ Downloads the Vision Transformer (ViT) to the local project since it is too larg
 """
 
 from huggingface_hub import hf_hub_download
-
+import config as cf
 
 def main():
     """
@@ -12,7 +12,7 @@ def main():
     file_path = hf_hub_download(
         repo_id="bmf4295/CSCI635_Final_Project",
         repo_type="dataset",
-        filename="data/635-ViT.keras",
+        filename=cf.PATH_MODEL_VIT,
         local_dir="."
     )
     print(f"Downloaded to: {file_path}")

@@ -1,7 +1,7 @@
 """
 File to create and train a Vision Transformer (ViT) model.
 """
-
+import config as cf
 import numpy as np
 import math
 from enum import Enum
@@ -10,35 +10,8 @@ import keras_hub
 import tensorflow as tf
 
 
-# Data Model Path
-PATH_MODEL = 'data/635-ViT.keras'
-
-# Train Paths
-PATH_TRAIN = 'data/train'
-PATH_TRAIN_MTG = 'data/train/train_mtg.dat'
-PATH_TRAIN_PKM = 'data/train/train_pkm.dat'
-PATH_TRAIN_YGO = 'data/train/train_ygo.dat'
-
-# Test Paths
-PATH_TEST = 'data/test'
-PATH_TEST_MTG = 'data/test/test_mtg.dat'
-PATH_TEST_PKM = 'data/test/test_pkm.dat'
-PATH_TEST_YGO = 'data/test/test_ygo.dat'
-
-# Validation Paths
-PATH_VALIDATION = 'data/validation'
-PATH_VALIDATION_MTG = 'data/validation/validation_mtg.dat'
-PATH_VALIDATION_PKM = 'data/validation/validation_pkm.dat'
-PATH_VALIDATION_YGO = 'data/validation/validation_ygo.dat'
-
-# Card Class Counts, Feature Sizes, and more
-COUNT_TRAIN = 9343
-COUNT_TEST = 2919
-COUNT_VALIDATION = 2335
+# Patch Count, Feature Sizes, and more
 COUNT_PATCH = 196  # (224/16) x (224/16) = 14 x 14 = 196
-SIZE_FEATURE = 350_000
-SIZE_FEATURE_WIDTH = 500
-SIZE_FEATURE_HEIGHT = 700
 SIZE_FEATURE_COMPRESSED = 224
 SIZE_BATCH = 32
 SIZE_PATCH = 16
@@ -48,19 +21,19 @@ EPOCHS_TEST = 1     # Replace EPOCHS_FROZEN and EPOCHS_UNFROZEN with this for te
 
 
 # Train Memmaps
-train_mtg = np.memmap(PATH_TRAIN_MTG, dtype=np.float32, mode="r", shape=(COUNT_TRAIN, SIZE_FEATURE))
-train_pkm = np.memmap(PATH_TRAIN_PKM, dtype=np.float32, mode="r", shape=(COUNT_TRAIN, SIZE_FEATURE))
-train_ygo = np.memmap(PATH_TRAIN_YGO, dtype=np.float32, mode="r", shape=(COUNT_TRAIN, SIZE_FEATURE))
+train_mtg = np.memmap(cf.PATH_TRAIN_MTG, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE))
+train_pkm = np.memmap(cf.PATH_TRAIN_PKM, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE))
+train_ygo = np.memmap(cf.PATH_TRAIN_YGO, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE))
 
 # Test Memmaps
-test_mtg = np.memmap(PATH_TEST_MTG, dtype=np.float32, mode="r", shape=(COUNT_TEST, SIZE_FEATURE))
-test_pkm = np.memmap(PATH_TEST_PKM, dtype=np.float32, mode="r", shape=(COUNT_TEST, SIZE_FEATURE))
-test_ygo = np.memmap(PATH_TEST_YGO, dtype=np.float32, mode="r", shape=(COUNT_TEST, SIZE_FEATURE))
+test_mtg = np.memmap(cf.PATH_TEST_MTG, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_FEATURE))
+test_pkm = np.memmap(cf.PATH_TEST_PKM, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_FEATURE))
+test_ygo = np.memmap(cf.PATH_TEST_YGO, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_FEATURE))
 
 # Validation Memmaps
-validation_mtg = np.memmap(PATH_VALIDATION_MTG, dtype=np.float32, mode="r", shape=(COUNT_VALIDATION, SIZE_FEATURE))
-validation_pkm = np.memmap(PATH_VALIDATION_PKM, dtype=np.float32, mode="r", shape=(COUNT_VALIDATION, SIZE_FEATURE))
-validation_ygo = np.memmap(PATH_VALIDATION_YGO, dtype=np.float32, mode="r", shape=(COUNT_VALIDATION, SIZE_FEATURE))
+val_mtg = np.memmap(cf.PATH_VALIDATION_MTG, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_FEATURE))
+val_pkm = np.memmap(cf.PATH_VALIDATION_PKM, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_FEATURE))
+val_ygo = np.memmap(cf.PATH_VALIDATION_YGO, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_FEATURE))
 
 
 class CardType(Enum):
@@ -74,7 +47,7 @@ def train_generator():
     """
     Train data generator used for data selection/iteration.
     """
-    for i in range(COUNT_TRAIN):
+    for i in range(cf.COUNT_TRAIN):
         yield train_mtg[i], CardType.MTG.value
         yield train_pkm[i], CardType.PKM.value
         yield train_ygo[i], CardType.YGO.value
@@ -84,17 +57,17 @@ def validation_generator():
     """
     Validation data generator used for data selection/iteration.
     """
-    for i in range(COUNT_VALIDATION):
-        yield validation_mtg[i], CardType.MTG.value
-        yield validation_pkm[i], CardType.PKM.value
-        yield validation_ygo[i], CardType.YGO.value
+    for i in range(cf.COUNT_VALIDATION):
+        yield val_mtg[i], CardType.MTG.value
+        yield val_pkm[i], CardType.PKM.value
+        yield val_ygo[i], CardType.YGO.value
 
 
 def test_generator():
     """
     Test data generator used for data selection/iteration.
     """
-    for i in range(COUNT_TEST):
+    for i in range(cf.COUNT_TEST):
         yield test_mtg[i], CardType.MTG.value
         yield test_pkm[i], CardType.PKM.value
         yield test_ygo[i], CardType.YGO.value
@@ -116,7 +89,7 @@ def image_resizer(images, labels):
     Returns:
         A tuple containing the reshaped images Tensor and the corresponding labels Tensor.
     """
-    images = tf.reshape(images, shape=(-1, SIZE_FEATURE_HEIGHT, SIZE_FEATURE_WIDTH, 1))
+    images = tf.reshape(images, shape=(-1, cf.SIZE_FEATURE_HEIGHT, cf.SIZE_FEATURE_WIDTH, 1))
     images = tf.image.resize(images, size=(SIZE_FEATURE_COMPRESSED, SIZE_FEATURE_COMPRESSED), method="area")
     images = images * 2 - 1
     images = tf.image.grayscale_to_rgb(images)
@@ -133,7 +106,7 @@ def create_datasets_vit():
     """
     # Output Generator Signature: [(350,000 features), (1 target class)]
     output_generator_signature = (
-        tf.TensorSpec(shape=(SIZE_FEATURE,), dtype=tf.float32),
+        tf.TensorSpec(shape=(cf.SIZE_FEATURE,), dtype=tf.float32),
         tf.TensorSpec(shape=(), dtype=tf.int32)
     )
 
@@ -143,21 +116,21 @@ def create_datasets_vit():
     ).batch(SIZE_BATCH
     ).map(image_resizer, num_parallel_calls=1
     ).prefetch(1
-    ).apply(tf.data.experimental.assert_cardinality(math.ceil(COUNT_TRAIN * 3 / SIZE_BATCH)))
+    ).apply(tf.data.experimental.assert_cardinality(math.ceil(cf.COUNT_TRAIN * 3 / SIZE_BATCH)))
 
     # Set up the validation dataset
     validation_dataset = tf.data.Dataset.from_generator(validation_generator, output_signature=output_generator_signature
     ).batch(SIZE_BATCH
     ).map(image_resizer, num_parallel_calls=1
     ).prefetch(1
-    ).apply(tf.data.experimental.assert_cardinality(math.ceil(COUNT_VALIDATION * 3 / SIZE_BATCH)))
+    ).apply(tf.data.experimental.assert_cardinality(math.ceil(cf.COUNT_VALIDATION * 3 / SIZE_BATCH)))
 
     # Set up the train dataset
     test_dataset = tf.data.Dataset.from_generator(test_generator, output_signature=output_generator_signature
     ).batch(SIZE_BATCH
     ).map(image_resizer, num_parallel_calls=1
     ).prefetch(1
-    ).apply(tf.data.experimental.assert_cardinality(math.ceil(COUNT_TEST * 3 / SIZE_BATCH)))
+    ).apply(tf.data.experimental.assert_cardinality(math.ceil(cf.COUNT_TEST * 3 / SIZE_BATCH)))
 
     return train_dataset, test_dataset, validation_dataset
 
@@ -199,8 +172,7 @@ def create_train_vit():
     # Trains the model on the training and validation sets
     model.fit(
         x=train_dataset,
-        #epochs=EPOCHS_FROZEN,
-        epochs=EPOCHS_TEST,
+        epochs=EPOCHS_FROZEN,
         validation_data=validation_dataset,
         callbacks=model_callbacks,
     )
@@ -219,8 +191,7 @@ def create_train_vit():
     # Trains the model on the training and validation sets ~ Continues the model
     model.fit(
         x=train_dataset,
-        #epochs=EPOCHS_UNFROZEN,
-        epochs=EPOCHS_TEST,
+        epochs=EPOCHS_UNFROZEN,
         validation_data=validation_dataset,
         callbacks=model_callbacks,
     )
@@ -232,7 +203,7 @@ def create_train_vit():
     print(f"Test Accuracy: {test_accuracy:.3%}")
 
     # Saves the model to be used later.
-    model.save(PATH_MODEL)
+    model.save(cf.PATH_MODEL_VIT)
 
 
 if __name__ == "__main__":

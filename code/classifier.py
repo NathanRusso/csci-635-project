@@ -22,6 +22,7 @@ finally:
     os.close(devnull)
 
 # Other Imports
+import config as cf
 import argparse
 import cv2 as cv
 import keras
@@ -30,14 +31,7 @@ import numpy as np
 
 
 # The size used for resizing
-SIZE_FEATURE_WIDTH = 500
-SIZE_FEATURE_HEIGHT = 700
 SIZE_IMAGE_VIT = 224
-
-# The paths to all 3 ML models
-PATH_CNN = 'data/635-CNN.keras'
-PATH_VIT = 'data/635-ViT.keras'
-PATH_MOBILEVIT = 'data/635-MobileVit_v2.keras'
 
 # Map of card class value to its name
 card_map = {
@@ -57,7 +51,7 @@ def cnn_classify(images):
     Returns:
         Numpy array of softmax predictions
     """
-    model = keras.models.load_model(PATH_CNN)
+    model = keras.models.load_model(cf.PATH_MODEL_CNN)
     return model.predict(images, verbose=0)
 
 
@@ -71,8 +65,8 @@ def vit_classify(images):
     Returns:
         Numpy array of 3-value tuples for each prediction (softmax)
     """
-    model = keras.models.load_model(PATH_VIT)
-    images = tf.reshape(images, shape=(-1, SIZE_FEATURE_HEIGHT, SIZE_FEATURE_WIDTH, 1))
+    model = keras.models.load_model(cf.PATH_MODEL_VIT)
+    images = tf.reshape(images, shape=(-1, cf.SIZE_FEATURE_HEIGHT, cf.SIZE_FEATURE_WIDTH, 1))
     images = tf.image.resize(images, size=(SIZE_IMAGE_VIT, SIZE_IMAGE_VIT), method="area")
     images = images * 2 - 1
     images = tf.image.grayscale_to_rgb(images)
@@ -89,7 +83,7 @@ def mobilevit_classify(images):
     Returns:
         Numpy array of softmax predictions
     """
-    # Build the exact architecture saved in PATH_MOBILEVIT 
+    # Build the exact architecture saved in PATH_MODEL_MOBILEVIT 
     base_model = build_MobileViT_v2(
         input_shape=(256, 192, 1),
         width_multiplier=0.5,
@@ -98,18 +92,18 @@ def mobilevit_classify(images):
         pretrained=False,
     )
     model = keras.Sequential([
-        keras.layers.Input(shape=(SIZE_FEATURE_HEIGHT, SIZE_FEATURE_WIDTH, 1)),
+        keras.layers.Input(shape=(cf.SIZE_FEATURE_HEIGHT, cf.SIZE_FEATURE_WIDTH, 1)),
         keras.layers.Resizing(256, 192),
         base_model,
     ])
 
     # Run a dummy forward pass so all internal sub-layers build their weight variables
-    model(np.zeros((1, SIZE_FEATURE_HEIGHT, SIZE_FEATURE_WIDTH, 1), dtype="float32"), training=False)
+    model(np.zeros((1, cf.SIZE_FEATURE_HEIGHT, cf.SIZE_FEATURE_WIDTH, 1), dtype="float32"), training=False)
 
     # Load the trained weights directly from the .keras archive
-    model.load_weights(PATH_MOBILEVIT)
+    model.load_weights(cf.PATH_MODEL_MOBILEVIT)
 
-    images = tf.reshape(images, shape=(-1, SIZE_FEATURE_HEIGHT, SIZE_FEATURE_WIDTH, 1))
+    images = tf.reshape(images, shape=(-1, cf.SIZE_FEATURE_HEIGHT, cf.SIZE_FEATURE_WIDTH, 1))
     return model.predict(images, verbose=0)
 
 
@@ -177,8 +171,8 @@ def main():
             print(f"[ERROR] Could not get image located at {path}!")
             continue
         images_paths_selected.append(path)
-        if image.shape[2:] != (SIZE_FEATURE_HEIGHT, SIZE_FEATURE_WIDTH):
-            image = cv.resize(image, (SIZE_FEATURE_WIDTH, SIZE_FEATURE_HEIGHT), interpolation=cv.INTER_AREA)
+        if image.shape[2:] != (cf.SIZE_FEATURE_HEIGHT, cf.SIZE_FEATURE_WIDTH):
+            image = cv.resize(image, (cf.SIZE_FEATURE_WIDTH, cf.SIZE_FEATURE_HEIGHT), interpolation=cv.INTER_AREA)
         #card = card.ravel()
         image = cv.normalize(src=image, dst=None, alpha=0.0, beta=1.0, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
         images.append(image)

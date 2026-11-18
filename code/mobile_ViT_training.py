@@ -1,68 +1,28 @@
 import os
 os.environ["KERAS_BACKEND"] = "tensorflow"
 
+import config as cf
 import keras
 from keras import layers
 import numpy as np
 from keras_vision.MobileViT_v2 import build_MobileViT_v2
 from make_labeled_dataset import make_labeled_dataset
 
-train_mtg= np.memmap(
-    "data/train/train_mtg.dat",
-    dtype=np.float32,
-    mode="r",
-    shape=(9343,350_000),
-)
-val_mtg= np.memmap(
-    "data/validation/validation_mtg.dat",
-    dtype=np.float32,
-    mode="r",
-    shape=(2335,350_000),
-)
-test_mtg= np.memmap(
-    "data/test/test_mtg.dat",
-    dtype=np.float32,
-    mode="r",
-    shape=(2919,350_000),
-)
+# Train Memmaps
+train_mtg = np.memmap(cf.PATH_TRAIN_MTG, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE))
+train_pkm = np.memmap(cf.PATH_TRAIN_PKM, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE))
+train_ygo = np.memmap(cf.PATH_TRAIN_YGO, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE))
 
-train_pkm= np.memmap(
-    "data/train/train_pkm.dat",
-    dtype=np.float32,
-    mode="r",
-    shape=(9343,350_000),
-)
-val_pkm= np.memmap(
-    "data/validation/validation_pkm.dat",
-    dtype=np.float32,
-    mode="r",
-    shape=(2335,350_000),
-)
-test_pkm= np.memmap(
-    "data/test/test_pkm.dat",
-    dtype=np.float32,
-    mode="r",
-    shape=(2919,350_000),
-)
+# Test Memmaps
+test_mtg = np.memmap(cf.PATH_TEST_MTG, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_FEATURE))
+test_pkm = np.memmap(cf.PATH_TEST_PKM, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_FEATURE))
+test_ygo = np.memmap(cf.PATH_TEST_YGO, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_FEATURE))
 
-train_ygo= np.memmap(
-    "data/train/train_ygo.dat",
-    dtype=np.float32,
-    mode="r",
-    shape=(9343,350_000),
-)
-val_ygo= np.memmap(
-    "data/validation/validation_ygo.dat",
-    dtype=np.float32,
-    mode="r",
-    shape=(2335,350_000),
-)
-test_ygo= np.memmap(
-    "data/test/test_ygo.dat",
-    dtype=np.float32,
-    mode="r",
-    shape=(2919,350_000),
-)
+# Validation Memmaps
+val_mtg = np.memmap(cf.PATH_VALIDATION_MTG, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_FEATURE))
+val_pkm = np.memmap(cf.PATH_VALIDATION_PKM, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_FEATURE))
+val_ygo = np.memmap(cf.PATH_VALIDATION_YGO, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_FEATURE))
+
 train_dataset_labeled = make_labeled_dataset(train_mtg, train_pkm, train_ygo, batch_size=24, shuffle=True)
 
 val_dataset_labeled = make_labeled_dataset( val_mtg, val_pkm, val_ygo, batch_size=24)
@@ -75,7 +35,7 @@ backbone = build_MobileViT_v2( width_multiplier=.5,
 #sizing the images down to speed up processing but keeping rough aspect ratio
 #Also MobileViT requires images to be divisible by 32 
 
-inputs= keras.Input(shape=(700,500,1))
+inputs= keras.Input(shape=(cf.SIZE_FEATURE_HEIGHT, cf.SIZE_FEATURE_WIDTH, 1))
 x = layers.Resizing(256,192) (inputs)
 logits = backbone(x)
 outputs = layers.Softmax()(logits)

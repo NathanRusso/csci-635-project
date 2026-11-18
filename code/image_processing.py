@@ -15,10 +15,11 @@ from datasets import load_dataset
 from tqdm import tqdm
 import ast
 import json
+import config as cf
 
 # Config
 # Card dimensions (portrait: 500 width x 700 height)
-TARGET_SIZE = (500, 700)
+TARGET_SIZE = (cf.SIZE_FEATURE_WIDTH, cf.SIZE_FEATURE_HEIGHT)
 RESIZE_MODE = "pad"  # "pad" (black letterboxing) or "stretch"
 
 BASE_OUTPUT_DIR = Path("../data")

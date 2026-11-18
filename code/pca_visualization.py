@@ -3,10 +3,9 @@ from sklearn.decomposition import PCA
 import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow import keras
-
+import config as cf
 
 NUM_SAMPLES = 100
-MODEL_PATH = "data/635-CNN.keras"
 
 
 def standard_pca(X):
@@ -15,7 +14,7 @@ def standard_pca(X):
     return pca.fit_transform(X_std)
 
 def cnn_embedding_pca(X):
-    model = keras.models.load_model(MODEL_PATH)
+    model = keras.models.load_model(cf.PATH_MODEL_CNN)
 
     # Extract output of second MaxPooling layer
     feature_maps = model.layers[3].output
@@ -27,7 +26,7 @@ def cnn_embedding_pca(X):
     )
 
     # Extract CNN embeddings
-    X_images = X.reshape(-1, 700, 500, 1)
+    X_images = X.reshape(-1, cf.SIZE_FEATURE_HEIGHT, cf.SIZE_FEATURE_WIDTH, 1)
     X_embeddings = embedding_model.predict(X_images)
 
     # Apply PCA
@@ -64,24 +63,9 @@ def visualize_pca(X, y, title):
 
 def main():
     # get data samples from each class
-    full_mtg = np.memmap(
-        "data/validation/validation_mtg.dat",
-        dtype=np.float32,
-        mode="r",
-        shape=(2335,350_000),
-    )
-    full_pkm = np.memmap(
-        "data/validation/validation_pkm.dat",
-        dtype=np.float32,
-        mode="r",
-        shape=(2335,350_000),
-    )
-    full_ygo = np.memmap(
-        "data/validation/validation_ygo.dat",
-        dtype=np.float32,
-        mode="r",
-        shape=(2335,350_000),
-    )
+    full_mtg = np.memmap(cf.PATH_VALIDATION_MTG, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_FEATURE))
+    full_pkm = np.memmap(cf.PATH_VALIDATION_PKM, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_FEATURE))
+    full_ygo = np.memmap(cf.PATH_VALIDATION_YGO, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_FEATURE))
 
     rng = np.random.default_rng()
     random_idxs = rng.choice(len(full_mtg), size=NUM_SAMPLES, replace=False)
