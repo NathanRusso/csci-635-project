@@ -1,12 +1,31 @@
 """
 Classifies a given image as one of the 3 trading cards using the CNN, ViT, and MobileViT.
 """
+# Logging Imports
+print("[INFO] Importing libraries...")
+import logging
+import os
+import warnings
 
+# Suppress warnings on run
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"    # Suppress TensorFlow startup messages
+warnings.filterwarnings("ignore")           # Suppress Python/Keras warnings
+logging.getLogger("tensorflow").setLevel(logging.ERROR)     # Suppress TensorFlow logging
+original_stderr = os.dup(2)                 # Temporarily suppress C++ startup output
+devnull = os.open(os.devnull, os.O_WRONLY)
+try:
+    os.dup2(devnull, 2)
+    import tensorflow as tf     # Note: Takes a few seconds
+finally:
+    os.dup2(original_stderr, 2)
+    os.close(original_stderr)
+    os.close(devnull)
+
+# Other Imports
 import argparse
 import cv2 as cv
 import keras
 import numpy as np
-import tensorflow as tf
 
 
 # The size used for resizing
@@ -37,8 +56,8 @@ def cnn_classify(images):
     Returns:
         ...
     """
-    #model = keras.models.load_model(PATH_CNN)
-    return [[0, 0, 0] for _ in range(len(images))]
+    model = keras.models.load_model(PATH_CNN)
+    return model.predict(images, verbose=0)
 
 
 def vit_classify(images):
@@ -105,7 +124,7 @@ def display_classify(images, images_paths):
 
     # Displays the output for each classification
     for i in range(len(images)):
-        prediction_cnn = np.round(predictions_cnn[i], decimals=3)
+        prediction_cnn = np.round(predictions_cnn[i] * 100, decimals=3)
         prediction_vit = np.round(predictions_vit[i] * 100, decimals=3)
         prediction_mobilevit = np.round(predictions_mobilevit[i], decimals=3)
         print(f"\nClassification Image #{i+1}: {images_paths[i]}")
@@ -119,6 +138,8 @@ def main():
     """
     Takes in a list of images and classifies them using the CNN, ViT, and MobileViT.
     """
+    print(f"[INFO] Running application...")
+    
     # Makes sure numpy shows all 3 decimal places minimum
     np.set_printoptions(formatter={'float_kind': '{:0.3f}'.format})
 
