@@ -2,6 +2,7 @@
 .DS_Store
 .venv/
 .vscode/
+.cache/
 mtg/
 pokemon/
 yugioh/

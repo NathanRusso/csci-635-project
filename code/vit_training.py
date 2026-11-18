@@ -1,5 +1,5 @@
 """
-File to create and train a Visual Transformer (ViT) model.
+File to create and train a Vision Transformer (ViT) model.
 """
 
 import numpy as np
