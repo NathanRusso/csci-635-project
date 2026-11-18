@@ -90,12 +90,12 @@ model.compile(
 
 
 callbacks =[
-keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.3, patience =2),
+keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.3, patience =3),
 keras.callbacks.ModelCheckpoint("data/635-MobileVit_v2.keras", save_best_only=True, monitor="val_accuracy"),
 keras.callbacks.EarlyStopping(patience =3, monitor="val_loss", restore_best_weights=True)
 ]
 
-model.fit(train_dataset_labeled, epochs =10, validation_data=val_dataset_labeled, callbacks= callbacks, shuffle = False)
+model.fit(train_dataset_labeled, epochs =20, validation_data=val_dataset_labeled, callbacks= callbacks, shuffle = False)
 
 test_loss, test_acc = model.evaluate(test_dataset_labled)
 print(f"Test Accuracy: {test_acc:.2%}")

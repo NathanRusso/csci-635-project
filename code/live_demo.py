@@ -1,6 +1,8 @@
 import cv2 as cv
 import numpy as np
-from tensorflow import keras
+import keras
+# from keras_vision.MobileViT_v2.base_layers import ConvLayer, InvertedResidualBlock
+# from keras_vision.MobileViT_v2.mobile_vit_v2_block import MobileViT_v2_Block
 
 ASPECT_RATIO = 2.5 / 3.5    # trading cards are about 5:7 or 2.5 x 3.5 inches
 TOLERANCE = 0.15             # allows for some size differences or tilt
@@ -22,11 +24,21 @@ def main():
     previous_box = None
 
     # using the CNN model
-    model = keras.models.load_model("data/635-CNN.keras")
+    # model = keras.models.load_model("data/635-CNN.keras")
 
-    # # using the Mobile ViT model
-    # # got a ton of warnings/errors, not sure why
-    # model = keras.models.load_model("data/635-MobileVit_v2.keras")
+    # using the Mobile ViT model
+    # got a ton of warnings/errors, not sure why
+    # model = keras.models.load_model(
+    #     "data/635-MobileVit_v2.keras",
+    #     custom_objects={
+    #         "ConvLayer": ConvLayer,
+    #         "InvertedResidualBlock": InvertedResidualBlock,
+    #         "MobileViT_v2_Block": MobileViT_v2_Block,
+    #     },
+    # )
+
+    # using the ViT model
+    model = keras.models.load_model("data/635-ViT.keras")
 
     print(model.summary())
 
@@ -142,8 +154,6 @@ def main():
 
     cam.release()
     cv.destroyAllWindows()
-
-
 
 
 
