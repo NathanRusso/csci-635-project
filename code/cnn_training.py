@@ -78,28 +78,38 @@ val_steps = sum(
                 for data in (val_mtg, val_pkm, val_ygo)
                 )
 
+kernel_regularizer = keras.regularizers.l2(1e-4)
+
 model = keras.Sequential([
     keras.Input(shape=(700, 500, 1)),
     # we can further reduce image size which might save time but increase bias it is keras.layers.Resizing(175, 125),
-    keras.layers.Conv2D(16, 3, activation='relu'),
+    keras.layers.Conv2D(32, 3, activation='relu', kernel_regularizer=kernel_regularizer),
     keras.layers.MaxPooling2D((2, 2)),
-    keras.layers.Conv2D(32, 3, activation='relu'),
+    keras.layers.Conv2D(64, 3, activation='relu', kernel_regularizer=kernel_regularizer),
     keras.layers.MaxPooling2D((2, 2)),
-    keras.layers.Flatten(),
-    keras.layers.Dense(3,activation='softmax')
+     keras.layers.Conv2D(64, 3, activation='relu', kernel_regularizer=kernel_regularizer),
+    keras.layers.GlobalAveragePooling2D(),
+    keras.layers.Dense(3, activation='softmax', kernel_regularizer=kernel_regularizer)
 ])
 
 model.compile(optimizer='adam',
               loss=keras.losses.SparseCategoricalCrossentropy(),
               metrics=['accuracy'])
 
+callbacks =[
+keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.3, patience =2),
+keras.callbacks.ModelCheckpoint("data/635-CNN.keras", save_best_only=True, monitor="val_accuracy"),
+keras.callbacks.EarlyStopping(patience =3, monitor="val_loss", restore_best_weights=True)
+]
+
+
 model.fit(train_dataset_labeled, 
-          epochs=3, 
+          epochs=20,
           validation_data=val_dataset_labeled,
           shuffle = False, #did our own shuffling with numpy so turning this off to avoid a warning
           steps_per_epoch=train_steps,
-          validation_steps=val_steps,)
+          validation_steps=val_steps,
+          callbacks=callbacks,
+          )
 
 model.evaluate(test_dataset_labled)
-
-model.save('data/635-CNN.keras')
