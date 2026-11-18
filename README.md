@@ -70,8 +70,50 @@ pip install -r requirements.txt
 
 ### Setup
 
-TBD - Pulling the image data???
+1. You **must** download the **ViT** model from Hugging Face. To get the model, run...
+
+```bash
+python .\code\vit_download.py
+```
 
 ### Running
 
-TMD - How we test out models???
+You can now classify images using the models in one of two ways: the CLI or the live demo.
+
+1. To classify a list of images with the CLI, run...
+
+```bash
+python .\code\classifier.py --images image_1_path image_2_path ...
+```
+
+- Example:
+
+```bash
+python .\code\classifier.py --images .\data\mtg\mtg_000001.jpg .\data\pokemon\pokemon_000001.jpg .\data\yugioh\yugioh_000001.jpg
+
+[INFO] Importing libraries...
+[INFO] Running application...
+
+Classification Image #1: .\data\mtg\mtg_000001.jpg
+        CNN:          [100.000 0.000 0.000], Magic: The Gathering
+        ViT:          [100.000 0.000 0.000], Magic: The Gathering
+        MobileViT:    [95.939 0.000 4.061], Magic: The Gathering
+
+Classification Image #2: .\data\pokemon\pokemon_000001.jpg
+        CNN:          [0.000 100.000 0.000], Pokemon
+        ViT:          [0.000 100.000 0.000], Pokemon
+        MobileViT:    [0.096 99.898 0.005], Pokemon
+
+Classification Image #3: .\data\yugioh\yugioh_000001.jpg
+        CNN:          [0.000 0.000 100.000], Yu-Gi-Oh
+        ViT:          [0.000 0.000 100.000], Yu-Gi-Oh
+        MobileViT:    [0.093 0.000 99.907], Yu-Gi-Oh
+
+```
+
+TODO
+2. To classify a live image captured from your camera, run ...
+
+```bash
+python .\code\live_demo.py.
+```
