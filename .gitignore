@@ -10,6 +10,5 @@ _temp/
 train/
 test/
 validation/
-pca_plots/
 __pycache__/
 635-ViT.keras
