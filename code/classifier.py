@@ -145,7 +145,7 @@ def display_classify(images, images_paths):
     for i in range(len(images)):
         prediction_cnn = np.round(predictions_cnn[i] * 100, decimals=3)
         prediction_vit = np.round(predictions_vit[i] * 100, decimals=3)
-        prediction_mobilevit = np.round(predictions_mobilevit[i], decimals=3)
+        prediction_mobilevit = np.round(predictions_mobilevit[i] * 100, decimals=3)
         print(f"\nClassification Image #{i+1}: {images_paths[i]}")
         print(f"\tCNN:          {prediction_cnn}, {card_map[np.argmax(prediction_cnn)]}")
         print(f"\tViT:          {prediction_vit}, {card_map[np.argmax(prediction_vit)]}")
