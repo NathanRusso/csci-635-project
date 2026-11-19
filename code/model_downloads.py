@@ -10,7 +10,7 @@ def main():
     Pulls the ViT model to your local computer from Hugging Face.
     """
     
-    print(f"Downloading Visual Transformer to: {file_path}")
+    print(f"Downloading Visual Transformer")
     file_path = hf_hub_download(
         repo_id="bmf4295/CSCI635_Final_Project",
         repo_type="dataset",
@@ -19,7 +19,7 @@ def main():
     )
     print(f"Downloaded to: {file_path}")
     
-    print(f"Downloading Mobile Visual Transformer to: {file_path}")
+    print(f"Downloading Mobile Visual Transformer")
     file_path = hf_hub_download(
         repo_id="bmf4295/CSCI635_Final_Project",
         repo_type="dataset",
@@ -28,7 +28,7 @@ def main():
     )
     print(f"Downloaded to: {file_path}")
     
-    print(f"Downloading CNN to: {file_path}")
+    print(f"Downloading CNN")
     file_path = hf_hub_download(
         repo_id="bmf4295/CSCI635_Final_Project",
         repo_type="dataset",
