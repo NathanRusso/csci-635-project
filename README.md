@@ -70,10 +70,13 @@ pip install -r requirements.txt
 
 ### Setup
 
-1. You **must** download the **ViT** model from Hugging Face. To get the model, run...
+All models are uploaded to the Hugging Face repository.
+While the CNN and MobileViT are small enough for GitHub, the ViT is not.
+
+1. You **must** download the **ViT** from Hugging Face. To get the model (+ the CNN and MobileViT), run...
 
 ```bash
-python .\code\vit_download.py
+python .\code\download_models.py
 ```
 
 ### Running
@@ -95,19 +98,19 @@ python .\code\classifier.py --images .\data\mtg\mtg_000001.jpg .\data\pokemon\po
 [INFO] Running application...
 
 Classification Image #1: .\data\mtg\mtg_000001.jpg
-        CNN:          [100.000 0.000 0.000], Magic: The Gathering
+        CNN:          [99.991 0.008 0.001], Magic: The Gathering
         ViT:          [100.000 0.000 0.000], Magic: The Gathering
-        MobileViT:    [95.939 0.000 4.061], Magic: The Gathering
+        MobileViT:    [99.897 0.000 0.103], Magic: The Gathering
 
 Classification Image #2: .\data\pokemon\pokemon_000001.jpg
-        CNN:          [0.000 100.000 0.000], Pokemon
+        CNN:          [0.109 99.881 0.010], Pokemon
         ViT:          [0.000 100.000 0.000], Pokemon
-        MobileViT:    [0.096 99.898 0.005], Pokemon
+        MobileViT:    [0.000 100.000 0.000], Pokemon
 
 Classification Image #3: .\data\yugioh\yugioh_000001.jpg
-        CNN:          [0.000 0.000 100.000], Yu-Gi-Oh
+        CNN:          [0.079 0.000 99.921], Yu-Gi-Oh
         ViT:          [0.000 0.000 100.000], Yu-Gi-Oh
-        MobileViT:    [0.093 0.000 99.907], Yu-Gi-Oh
+        MobileViT:    [0.009 0.000 99.991], Yu-Gi-Oh
 
 ```
 
