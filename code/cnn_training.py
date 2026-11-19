@@ -42,6 +42,7 @@ kernel_regularizer = keras.regularizers.l2(1e-4)
 model = keras.Sequential([
     keras.Input(shape=(cf.SIZE_FEATURE_HEIGHT, cf.SIZE_FEATURE_WIDTH, 1)),
     # we can further reduce image size which might save time but increase bias it is keras.layers.Resizing(175, 125),
+    keras.layers.Resizing(175, 125),
     keras.layers.Conv2D(32, 3, activation='relu', kernel_regularizer=kernel_regularizer),
     keras.layers.MaxPooling2D((2, 2)),
     keras.layers.Conv2D(64, 3, activation='relu', kernel_regularizer=kernel_regularizer),

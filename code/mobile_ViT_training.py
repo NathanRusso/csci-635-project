@@ -23,11 +23,11 @@ val_mtg = np.memmap(cf.PATH_VALIDATION_MTG, dtype=np.float32, mode="r", shape=(c
 val_pkm = np.memmap(cf.PATH_VALIDATION_PKM, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_FEATURE))
 val_ygo = np.memmap(cf.PATH_VALIDATION_YGO, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_FEATURE))
 
-train_dataset_labeled = make_labeled_dataset(train_mtg, train_pkm, train_ygo, batch_size=24, shuffle=True)
+train_dataset_labeled = make_labeled_dataset(train_mtg, train_pkm, train_ygo, batch_size=16, shuffle=True)
 
-val_dataset_labeled = make_labeled_dataset( val_mtg, val_pkm, val_ygo, batch_size=24)
+val_dataset_labeled = make_labeled_dataset( val_mtg, val_pkm, val_ygo, batch_size=16)
 
-test_dataset_labled = make_labeled_dataset( test_mtg, test_pkm, test_ygo, batch_size=24)
+test_dataset_labled = make_labeled_dataset( test_mtg, test_pkm, test_ygo, batch_size=16)
 
 backbone = build_MobileViT_v2( width_multiplier=.5,
                                 num_classes=3,
