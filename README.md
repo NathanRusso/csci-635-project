@@ -5,7 +5,7 @@ We constructed 3 machine learning models, a CNN, a ViT, and a MobileViT, to clas
 Table of Contents:
 * [Developers](#developers-group-7)
 * [About Our Project](#about-our-project)
-* [Image Datasets](#image-datasets)
+* [Image Datasets and Models](#image-datasets-and-models)
 * [Using the Application](#using-the-application)
 
 ## Developers (Group 7)
