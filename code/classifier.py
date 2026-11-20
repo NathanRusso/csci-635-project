@@ -132,6 +132,8 @@ def display_classify(images, images_paths):
         images: Numpy array of 700x500 images
         image_paths: A list of the string image paths
     """
+    print(f"[INFO] Classifying image(s)...")
+
     # Makes sure numpy shows all 3 decimal places minimum
     np.set_printoptions(formatter={'float_kind': '{:0.3f}'.format})
 
