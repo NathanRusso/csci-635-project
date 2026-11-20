@@ -132,6 +132,9 @@ def display_classify(images, images_paths):
         images: Numpy array of 700x500 images
         image_paths: A list of the string image paths
     """
+    # Makes sure numpy shows all 3 decimal places minimum
+    np.set_printoptions(formatter={'float_kind': '{:0.3f}'.format})
+
     # Gets the softmax classification arrays from the models
     predictions_cnn, predictions_vit, predictions_mobilevit = classify(images)
 
@@ -152,9 +155,6 @@ def main():
     Takes in a list of images and classifies them using the CNN, ViT, and MobileViT.
     """
     print(f"[INFO] Running application...")
-    
-    # Makes sure numpy shows all 3 decimal places minimum
-    np.set_printoptions(formatter={'float_kind': '{:0.3f}'.format})
 
     # Get a list of cards to classify (image paths)
     parser = argparse.ArgumentParser(prog="ML Project", description="Trading Card Classifier")
