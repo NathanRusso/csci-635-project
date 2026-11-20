@@ -52,6 +52,7 @@ def cnn_classify(images):
         Numpy array of softmax predictions
     """
     model = keras.models.load_model(cf.PATH_MODEL_CNN)
+    images = np.expand_dims(images, axis=-1)
     return model.predict(images, verbose=0)
 
 
