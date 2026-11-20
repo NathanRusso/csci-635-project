@@ -45,6 +45,7 @@ def main():
         return
 
     previous_box = None
+    predicted_label = "None"
 
     # using the CNN model
     model = keras.models.load_model("data/635-CNN.keras")
@@ -127,9 +128,6 @@ def main():
             smoothed_box = previous_box.astype(np.int32)
 
             cv.drawContours(display_frame, [smoothed_box], 0, (0, 255, 0), 2)
-
-        cv.imshow("testing frame", thresh)
-        cv.imshow('Live Demo: Trading Card Classifier', display_frame)
         
         key = cv.waitKey(1) & 0xFF
 
@@ -176,8 +174,11 @@ def main():
 
             print(f"Prediction: {predicted_label}")
             print(f"Confidence: {confidence * 100:.2f}%")
-            classifier.display_classify(np.array(input_image), ["Live Demo"])
+            # classifier.display_classify(np.array(input_image), ["Live Demo"])
 
+        cv.imshow("testing frame", thresh)
+        cv.putText(display_frame, f"Prediction: {predicted_label}", (50, 50), cv.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
+        cv.imshow('Live Demo: Trading Card Classifier', display_frame)
 
     cam.release()
     cv.destroyAllWindows()
