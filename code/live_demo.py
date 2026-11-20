@@ -47,7 +47,7 @@ def main():
     previous_box = None
 
     # using the CNN model
-    # model = keras.models.load_model("data/635-CNN.keras")
+    model = keras.models.load_model("data/635-CNN.keras")
 
     # using the Mobile ViT model
     # got a ton of warnings/errors, not sure why
@@ -60,8 +60,8 @@ def main():
     #     },
     # )
 
-    # using the ViT model
-    model = keras.models.load_model("data/635-ViT.keras")
+    # # using the ViT model
+    # model = keras.models.load_model("data/635-ViT.keras")
 
     print(model.summary())
 
@@ -154,11 +154,11 @@ def main():
 
             card_box = gray[y:y+height, x:x+width]
 
-            cv.imshow("card crop", card_box)
+            flipped = cv.flip(card_box, 1)
+            cv.imshow("card crop", flipped)
 
             # CNN expects shape (None, 700, 500, 1)
-            card_box = cv.flip(card_box, 0)
-            resized = cv.resize(card_box, (cf.SIZE_FEATURE_WIDTH, cf.SIZE_FEATURE_HEIGHT))
+            resized = cv.resize(flipped, (cf.SIZE_FEATURE_WIDTH, cf.SIZE_FEATURE_HEIGHT))
             normed = cv.normalize(resized, dst=None, alpha=0.0, beta=1.0, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
 
             normed = np.expand_dims(normed, axis=-1)
@@ -166,7 +166,9 @@ def main():
 
             # Get card prediction
             prediction = model.predict(input_image, verbose=0) 
+            # prediction = classifier.vit_classify(np.array(input_image))
             predicted_class = np.argmax(prediction[0])
+            print(prediction[0])
             predicted_label = class_names[predicted_class]
 
             # Get confidence
