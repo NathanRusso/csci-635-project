@@ -45,10 +45,12 @@ def main():
         return
 
     previous_box = None
-    predicted_label = "None"
+    cnn_prediction = "None"
+    vit_prediction = "None"
+    mobilevit_prediction = "None"
 
     # using the CNN model
-    model = keras.models.load_model("data/635-CNN.keras")
+    # model = keras.models.load_model("data/635-CNN.keras")
 
     # using the Mobile ViT model
     # got a ton of warnings/errors, not sure why
@@ -63,8 +65,6 @@ def main():
 
     # # using the ViT model
     # model = keras.models.load_model("data/635-ViT.keras")
-
-    print(model.summary())
 
     while True:
         ret, frame = cam.read()
@@ -159,25 +159,31 @@ def main():
             resized = cv.resize(flipped, (cf.SIZE_FEATURE_WIDTH, cf.SIZE_FEATURE_HEIGHT))
             normed = cv.normalize(resized, dst=None, alpha=0.0, beta=1.0, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
 
-            normed = np.expand_dims(normed, axis=-1)
-            input_image = np.expand_dims(normed, axis=0)
-
             # Get card prediction
-            prediction = model.predict(input_image, verbose=0) 
+            # prediction = model.predict(input_image, verbose=0) 
             # prediction = classifier.vit_classify(np.array(input_image))
-            predicted_class = np.argmax(prediction[0])
-            print(prediction[0])
-            predicted_label = class_names[predicted_class]
+            predictions_cnn, predictions_vit, predictions_mobilevit = classifier.classify(np.array(normed))
 
-            # Get confidence
-            confidence = prediction[0][predicted_class]
+            # predicted_class = np.argmax(prediction[0])
+            # print(prediction[0])
+            # predicted_label = class_names[predicted_class]
+            cnn_prediction = class_names[np.argmax(predictions_cnn[0])]
+            vit_prediction = class_names[np.argmax(predictions_vit[0])]
+            mobilevit_prediction = class_names[np.argmax(predictions_mobilevit[0])]
 
-            print(f"Prediction: {predicted_label}")
-            print(f"Confidence: {confidence * 100:.2f}%")
+            # # Get confidence
+            # confidence = prediction[0][predicted_class]
+
+            # print(f"Prediction: {predicted_label}")
+            # print(f"Confidence: {confidence * 100:.2f}%")
             # classifier.display_classify(np.array(input_image), ["Live Demo"])
 
         cv.imshow("testing frame", thresh)
-        cv.putText(display_frame, f"Prediction: {predicted_label}", (50, 50), cv.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
+
+        cv.putText(display_frame, f"CNN: {cnn_prediction}", (50, 50), cv.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
+        cv.putText(display_frame, f"ViT: {vit_prediction}", (50, 100), cv.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
+        cv.putText(display_frame, f"MobileViT: {mobilevit_prediction}", (50, 150), cv.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
+
         cv.imshow('Live Demo: Trading Card Classifier', display_frame)
 
     cam.release()
