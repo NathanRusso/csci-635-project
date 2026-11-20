@@ -1,4 +1,8 @@
+## Mobile Vision Transformer Paper and Resources
+
 https://www.alphaxiv.org/abs/2110.02178
+https://learnopencv.com/mobilevit-keras-3/
+https://pypi.org/project/keras-vision/
 
 ## Vision Transformer Links
 
