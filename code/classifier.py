@@ -33,13 +33,6 @@ import numpy as np
 # The size used for resizing
 SIZE_IMAGE_VIT = 224
 
-# Map of card class value to its name
-card_map = {
-    0: "Magic: The Gathering",
-    1: "Pokemon",
-    2: "Yu-Gi-Oh"
-}
-
 
 def cnn_classify(images):
     """
@@ -147,9 +140,9 @@ def display_classify(images, images_paths):
         prediction_vit = np.round(predictions_vit[i] * 100, decimals=3)
         prediction_mobilevit = np.round(predictions_mobilevit[i] * 100, decimals=3)
         print(f"\nClassification Image #{i+1}: {images_paths[i]}")
-        print(f"\tCNN:          {prediction_cnn}, {card_map[np.argmax(prediction_cnn)]}")
-        print(f"\tViT:          {prediction_vit}, {card_map[np.argmax(prediction_vit)]}")
-        print(f"\tMobileViT:    {prediction_mobilevit}, {card_map[np.argmax(prediction_mobilevit)]}")
+        print(f"\tCNN:          {prediction_cnn}, {cf.card_type_map[np.argmax(prediction_cnn)]}")
+        print(f"\tViT:          {prediction_vit}, {cf.card_type_map[np.argmax(prediction_vit)]}")
+        print(f"\tMobileViT:    {prediction_mobilevit}, {cf.card_type_map[np.argmax(prediction_mobilevit)]}")
     print()
 
 

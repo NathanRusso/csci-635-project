@@ -31,11 +31,6 @@ ASPECT_RATIO = 2.5 / 3.5    # trading cards are about 5:7 or 2.5 x 3.5 inches
 TOLERANCE = 0.15             # allows for some size differences or tilt
 ALPHA = 0.7                 # box smoothing parameter
 
-class_names = {
-    0: "Magic: The Gathering",
-    1: "Pokemon",
-    2: "Yu-Gi-Oh"
-}
 
 def main():
     cam = cv.VideoCapture(0)
@@ -166,10 +161,10 @@ def main():
 
             # predicted_class = np.argmax(prediction[0])
             # print(prediction[0])
-            # predicted_label = class_names[predicted_class]
-            cnn_prediction = class_names[np.argmax(predictions_cnn[0])]
-            vit_prediction = class_names[np.argmax(predictions_vit[0])]
-            mobilevit_prediction = class_names[np.argmax(predictions_mobilevit[0])]
+            # predicted_label = cf.card_type_map[predicted_class]
+            cnn_prediction = cf.card_type_map[np.argmax(predictions_cnn[0])]
+            vit_prediction = cf.card_type_map[np.argmax(predictions_vit[0])]
+            mobilevit_prediction = cf.card_type_map[np.argmax(predictions_mobilevit[0])]
 
             # # Get confidence
             # confidence = prediction[0][predicted_class]

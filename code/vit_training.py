@@ -36,21 +36,14 @@ val_pkm = np.memmap(cf.PATH_VALIDATION_PKM, dtype=np.float32, mode="r", shape=(c
 val_ygo = np.memmap(cf.PATH_VALIDATION_YGO, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_FEATURE))
 
 
-class CardType(Enum):
-    """Card Type Enum for Magic, Pokemon, and Yu-Gi-Oh."""
-    MTG = 0     # Magic: The Gathering
-    PKM = 1     # Pokemon
-    YGO = 2     # Yu-Gi-Oh
-
-
 def train_generator():
     """
     Train data generator used for data selection/iteration.
     """
     for i in range(cf.COUNT_TRAIN):
-        yield train_mtg[i], CardType.MTG.value
-        yield train_pkm[i], CardType.PKM.value
-        yield train_ygo[i], CardType.YGO.value
+        yield train_mtg[i], cf.CardType.MTG.value
+        yield train_pkm[i], cf.CardType.PKM.value
+        yield train_ygo[i], cf.CardType.YGO.value
 
 
 def validation_generator():
@@ -58,9 +51,9 @@ def validation_generator():
     Validation data generator used for data selection/iteration.
     """
     for i in range(cf.COUNT_VALIDATION):
-        yield val_mtg[i], CardType.MTG.value
-        yield val_pkm[i], CardType.PKM.value
-        yield val_ygo[i], CardType.YGO.value
+        yield val_mtg[i], cf.CardType.MTG.value
+        yield val_pkm[i], cf.CardType.PKM.value
+        yield val_ygo[i], cf.CardType.YGO.value
 
 
 def test_generator():
@@ -68,9 +61,9 @@ def test_generator():
     Test data generator used for data selection/iteration.
     """
     for i in range(cf.COUNT_TEST):
-        yield test_mtg[i], CardType.MTG.value
-        yield test_pkm[i], CardType.PKM.value
-        yield test_ygo[i], CardType.YGO.value
+        yield test_mtg[i], cf.CardType.MTG.value
+        yield test_pkm[i], cf.CardType.PKM.value
+        yield test_ygo[i], cf.CardType.YGO.value
 
 
 def image_resizer(images, labels):

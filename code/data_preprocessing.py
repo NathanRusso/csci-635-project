@@ -4,29 +4,17 @@ import math as m
 import numpy as np
 import pandas as pd
 import time as t
-from enum import Enum
 import config as cf
 
 
 # Temporary Paths
-TEMP_MTG = 'data/_temp/temp_mtg.dat'
-TEMP_PKM = 'data/_temp/temp_pkm.dat'
-TEMP_YGO = 'data/_temp/temp_ygo.dat'
-TEMP_ALL = 'data/_temp/temp_all.dat'
+PATH_TEMP_MTG = 'data/_temp/temp_mtg.dat'
+PATH_TEMP_PKM = 'data/_temp/temp_pkm.dat'
+PATH_TEMP_YGO = 'data/_temp/temp_ygo.dat'
+PATH_TEMP_ALL = 'data/_temp/temp_all.dat'
 
-# Card Counts and Feature Size
-COUNT_MTG = 16_990
-COUNT_PKM = 21_199
-COUNT_YGO = 14_599
-IMAGE_DATA_SIZE = 350_000
+# Processing Chunk Size
 CHUNK_SIZE = 100
-
-
-class CardType(Enum):
-    """Card Type Enum for Magic, Pokemon, and Yu-Gi-Oh."""
-    MTG = 0     # Magic: The Gathering
-    PKM = 1     # Pokemon
-    YGO = 2     # Yu-Gi-Oh
 
 
 def convert_images_to_vectors(temporary_filename: str, path: str, count: int | None = None):
@@ -47,7 +35,7 @@ def convert_images_to_vectors(temporary_filename: str, path: str, count: int | N
     filenames = os.listdir(path)
     if count is None: count = len(filenames)
     filenames = filenames[:count]
-    card_vectors = np.memmap(temporary_filename, dtype=np.float32, mode='w+', shape=(count, IMAGE_DATA_SIZE))
+    card_vectors = np.memmap(temporary_filename, dtype=np.float32, mode='w+', shape=(count, cf.SIZE_FEATURE))
 
     # Convert count number of cards
     for i, filename in enumerate(filenames):
@@ -103,7 +91,7 @@ def train_test_validation_split(card_count: int, data_memmaps: list):
         buffer = 0
         for count, set in zip(split_counts, ["TRAIN", "TEST", "VALIDATION"]):
             # Creates the memmap for that card's set
-            map = np.memmap(getattr(cf, f"PATH_{set}_{card_key}"), dtype=np.float32, mode='w+', shape=(count, IMAGE_DATA_SIZE))
+            map = np.memmap(getattr(cf, f"PATH_{set}_{card_key}"), dtype=np.float32, mode='w+', shape=(count, cf.SIZE_FEATURE))
 
             # Copy data through chunks
             chunk_count, chunk_remainder = divmod(count, CHUNK_SIZE)
@@ -140,16 +128,16 @@ def main():
     """
 
     # Set the numbers of cards to process from each set
-    card_count = min(COUNT_MTG, COUNT_PKM, COUNT_YGO)
+    card_count = min(cf.COUNT_MTG, cf.COUNT_PKM, cf.COUNT_YGO)
     #card_count = 100
 
     # Gets the vectors for all cards JPGs per path
     print("[INFO] Converting 'Magic: The Gathering' card JPGs to vectors...")
-    mtg_cards = convert_images_to_vectors(TEMP_MTG, cf.PATH_MTG, card_count)
+    mtg_cards = convert_images_to_vectors(PATH_TEMP_MTG, cf.PATH_MTG, card_count)
     print("[INFO] Converting 'Pokemon' card JPGs to vectors...")
-    pkm_cards = convert_images_to_vectors(TEMP_PKM, cf.PATH_PKM, card_count)
+    pkm_cards = convert_images_to_vectors(PATH_TEMP_PKM, cf.PATH_PKM, card_count)
     print("[INFO] Converting 'Yu-Gi-Oh' card JPGs to vectors...")
-    ygo_cards = convert_images_to_vectors(TEMP_YGO, cf.PATH_YGO, card_count)
+    ygo_cards = convert_images_to_vectors(PATH_TEMP_YGO, cf.PATH_YGO, card_count)
 
     # Copy and split the MTG, PKM, & YGO data from the temporary files into their own train, test, and validation data files
     print("[INFO] Splitting data into Train, Test, and Validation sets...")
@@ -160,9 +148,9 @@ def main():
     if hasattr(pkm_cards, '_mmap'): pkm_cards._mmap.close()
     if hasattr(ygo_cards, '_mmap'): ygo_cards._mmap.close()
     del mtg_cards, pkm_cards, ygo_cards
-    if os.path.exists(TEMP_MTG): os.remove(TEMP_MTG)
-    if os.path.exists(TEMP_PKM): os.remove(TEMP_PKM)
-    if os.path.exists(TEMP_YGO): os.remove(TEMP_YGO)
+    if os.path.exists(PATH_TEMP_MTG): os.remove(PATH_TEMP_MTG)
+    if os.path.exists(PATH_TEMP_PKM): os.remove(PATH_TEMP_PKM)
+    if os.path.exists(PATH_TEMP_YGO): os.remove(PATH_TEMP_YGO)
 
 
 if __name__ == "__main__":
