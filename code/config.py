@@ -40,10 +40,31 @@ PATH_VALIDATION_MTG = 'data/validation/validation_mtg.dat'
 PATH_VALIDATION_PKM = 'data/validation/validation_pkm.dat'
 PATH_VALIDATION_YGO = 'data/validation/validation_ygo.dat'
 
-# Card Feature Sizes
+# Train Paths (Version 2)
+PATH_TRAIN_2 = 'data/train_2'
+PATH_TRAIN_MTG_2 = 'data/train_2/train_mtg_2.dat'
+PATH_TRAIN_PKM_2 = 'data/train_2/train_pkm_2.dat'
+PATH_TRAIN_YGO_2 = 'data/train_2/train_ygo_2.dat'
+
+# Test Paths (Version 2)
+PATH_TEST_2 = 'data/test_2'
+PATH_TEST_MTG_2 = 'data/test_2/test_mtg_2.dat'
+PATH_TEST_PKM_2 = 'data/test_2/test_pkm_2.dat'
+PATH_TEST_YGO_2 = 'data/test_2/test_ygo_2.dat'
+
+# Validation Paths (Version 2)
+PATH_VALIDATION_2 = 'data/validation_2'
+PATH_VALIDATION_MTG_2 = 'data/validation_2/validation_mtg_2.dat'
+PATH_VALIDATION_PKM_2 = 'data/validation_2/validation_pkm_2.dat'
+PATH_VALIDATION_YGO_2 = 'data/validation_2/validation_ygo_2.dat'
+
+# Card Feature and Padded Feature Sizes
 SIZE_FEATURE = 350_000
 SIZE_FEATURE_WIDTH = 500
 SIZE_FEATURE_HEIGHT = 700
+SIZE_PADDING = 20
+SIZE_PADDED_HEIGHT = SIZE_FEATURE_HEIGHT + SIZE_PADDING*2
+SIZE_PADDED_WIDTH = SIZE_FEATURE_WIDTH + SIZE_PADDING*2
 
 # Card Counts
 COUNT_MTG = 16_990
