@@ -21,26 +21,19 @@ EPOCHS_TEST = 1     # Replace EPOCHS_FROZEN and EPOCHS_UNFROZEN with this for te
 
 
 # Train Memmaps
-train_mtg = np.memmap(cf.PATH_TRAIN_MTG, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE))
-train_pkm = np.memmap(cf.PATH_TRAIN_PKM, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE))
-train_ygo = np.memmap(cf.PATH_TRAIN_YGO, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE))
+train_mtg = np.memmap(cf.PATH_TRAIN_MTG_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_PADDED_FEATURE))
+train_pkm = np.memmap(cf.PATH_TRAIN_PKM_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_PADDED_FEATURE))
+train_ygo = np.memmap(cf.PATH_TRAIN_YGO_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_PADDED_FEATURE))
 
 # Test Memmaps
-test_mtg = np.memmap(cf.PATH_TEST_MTG, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_FEATURE))
-test_pkm = np.memmap(cf.PATH_TEST_PKM, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_FEATURE))
-test_ygo = np.memmap(cf.PATH_TEST_YGO, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_FEATURE))
+test_mtg = np.memmap(cf.PATH_TEST_MTG_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_PADDED_FEATURE))
+test_pkm = np.memmap(cf.PATH_TEST_PKM_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_PADDED_FEATURE))
+test_ygo = np.memmap(cf.PATH_TEST_YGO_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_PADDED_FEATURE))
 
 # Validation Memmaps
-val_mtg = np.memmap(cf.PATH_VALIDATION_MTG, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_FEATURE))
-val_pkm = np.memmap(cf.PATH_VALIDATION_PKM, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_FEATURE))
-val_ygo = np.memmap(cf.PATH_VALIDATION_YGO, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_FEATURE))
-
-
-class CardType(Enum):
-    """Card Type Enum for Magic, Pokemon, and Yu-Gi-Oh."""
-    MTG = 0     # Magic: The Gathering
-    PKM = 1     # Pokemon
-    YGO = 2     # Yu-Gi-Oh
+val_mtg = np.memmap(cf.PATH_VALIDATION_MTG_2, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_PADDED_FEATURE))
+val_pkm = np.memmap(cf.PATH_VALIDATION_PKM_2, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_PADDED_FEATURE))
+val_ygo = np.memmap(cf.PATH_VALIDATION_YGO_2, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_PADDED_FEATURE))
 
 
 def train_generator():
@@ -48,9 +41,9 @@ def train_generator():
     Train data generator used for data selection/iteration.
     """
     for i in range(cf.COUNT_TRAIN):
-        yield train_mtg[i], CardType.MTG.value
-        yield train_pkm[i], CardType.PKM.value
-        yield train_ygo[i], CardType.YGO.value
+        yield train_mtg[i], cf.CardType.MTG.value
+        yield train_pkm[i], cf.CardType.PKM.value
+        yield train_ygo[i], cf.CardType.YGO.value
 
 
 def validation_generator():
@@ -58,9 +51,9 @@ def validation_generator():
     Validation data generator used for data selection/iteration.
     """
     for i in range(cf.COUNT_VALIDATION):
-        yield val_mtg[i], CardType.MTG.value
-        yield val_pkm[i], CardType.PKM.value
-        yield val_ygo[i], CardType.YGO.value
+        yield val_mtg[i], cf.CardType.MTG.value
+        yield val_pkm[i], cf.CardType.PKM.value
+        yield val_ygo[i], cf.CardType.YGO.value
 
 
 def test_generator():
@@ -68,17 +61,17 @@ def test_generator():
     Test data generator used for data selection/iteration.
     """
     for i in range(cf.COUNT_TEST):
-        yield test_mtg[i], CardType.MTG.value
-        yield test_pkm[i], CardType.PKM.value
-        yield test_ygo[i], CardType.YGO.value
+        yield test_mtg[i], cf.CardType.MTG.value
+        yield test_pkm[i], cf.CardType.PKM.value
+        yield test_ygo[i], cf.CardType.YGO.value
 
 
 def image_resizer(images, labels):
     """
     Resizes the images for the ViT.
 
-    1. (350_000,) to (700, 500, 1)
-    2. (700, 500, 1) to (224, 224)
+    1. (399_600,) to (740, 540, 1)
+    2. (740, 540, 1) to (224, 224)
     3. (224, 224, 1) [0, 1] to (224, 224, 1) [-1, 1]
     4. (224, 224, 1) to (224, 224, 3) where the 3 channels are the same.
 
@@ -89,7 +82,7 @@ def image_resizer(images, labels):
     Returns:
         A tuple containing the reshaped images Tensor and the corresponding labels Tensor.
     """
-    images = tf.reshape(images, shape=(-1, cf.SIZE_FEATURE_HEIGHT, cf.SIZE_FEATURE_WIDTH, 1))
+    images = tf.reshape(images, shape=(-1, cf.SIZE_PADDED_HEIGHT, cf.SIZE_PADDED_WIDTH, 1))
     images = tf.image.resize(images, size=(SIZE_FEATURE_COMPRESSED, SIZE_FEATURE_COMPRESSED), method="area")
     images = images * 2 - 1
     images = tf.image.grayscale_to_rgb(images)
@@ -104,9 +97,9 @@ def create_datasets_vit():
     Returns:
         A 3-tuple containing the train, test, and validation datasets.
     """
-    # Output Generator Signature: [(350,000 features), (1 target class)]
+    # Output Generator Signature: [(399_600 features), (1 target class)]
     output_generator_signature = (
-        tf.TensorSpec(shape=(cf.SIZE_FEATURE,), dtype=tf.float32),
+        tf.TensorSpec(shape=(cf.SIZE_PADDED_FEATURE,), dtype=tf.float32),
         tf.TensorSpec(shape=(), dtype=tf.int32)
     )
 
@@ -203,7 +196,7 @@ def create_train_vit():
     print(f"Test Accuracy: {test_accuracy:.3%}")
 
     # Saves the model to be used later.
-    model.save(cf.PATH_MODEL_VIT)
+    model.save(cf.PATH_MODEL_VIT_2)
 
 
 if __name__ == "__main__":

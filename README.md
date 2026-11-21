@@ -5,7 +5,7 @@ We constructed 3 machine learning models, a CNN, a ViT, and a MobileViT, to clas
 Table of Contents:
 * [Developers](#developers-group-7)
 * [About Our Project](#about-our-project)
-* [Image Datasets](#image-datasets)
+* [Image Datasets and Models](#image-datasets-and-models)
 * [Using the Application](#using-the-application)
 
 ## Developers (Group 7)
@@ -30,9 +30,9 @@ The three models that we built were:
 
 We obtained image card data from Hugging Face and Kaggle and stored the grayscale, normalized, flattened, and compressed image vectors in our dataset for model training and evaluation. We also developed a live image-tracking system to demonstrate our trading card classification models.
 
-## Image Datasets
+## Image Datasets and Models
 
-### Hugging Face Repository for All Trading Card Images
+### Hugging Face Repository for All Trading Card Images and Models
 
 - All (https://huggingface.co/datasets/bmf4295/CSCI635_Final_Project)
 

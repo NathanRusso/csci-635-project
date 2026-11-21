@@ -1,7 +1,29 @@
+# Logging Imports
+print("[INFO] Importing libraries...")
+import logging
+import os
+import warnings
+
+# Suppress warnings on run
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"    # Suppress TensorFlow startup messages
+warnings.filterwarnings("ignore")           # Suppress Python/Keras warnings
+logging.getLogger("tensorflow").setLevel(logging.ERROR)     # Suppress TensorFlow logging
+original_stderr = os.dup(2)                 # Temporarily suppress C++ startup output
+devnull = os.open(os.devnull, os.O_WRONLY)
+try:
+    os.dup2(devnull, 2)
+    # import tensorflow as tf     # Note: Takes a few seconds
+    import keras
+finally:
+    os.dup2(original_stderr, 2)
+    os.close(original_stderr)
+    os.close(devnull)
+
 import cv2 as cv
 import numpy as np
-import keras
+
 import config as cf
+import classifier
 # from keras_vision.MobileViT_v2.base_layers import ConvLayer, InvertedResidualBlock
 # from keras_vision.MobileViT_v2.mobile_vit_v2_block import MobileViT_v2_Block
 
@@ -9,11 +31,6 @@ ASPECT_RATIO = 2.5 / 3.5    # trading cards are about 5:7 or 2.5 x 3.5 inches
 TOLERANCE = 0.15             # allows for some size differences or tilt
 ALPHA = 0.7                 # box smoothing parameter
 
-class_names = {
-    0: "Magic: The Gathering",
-    1: "Pokemon",
-    2: "Yu-Gi-Oh"
-}
 
 def main():
     cam = cv.VideoCapture(0)
@@ -23,6 +40,9 @@ def main():
         return
 
     previous_box = None
+    cnn_prediction = "None"
+    vit_prediction = "None"
+    mobilevit_prediction = "None"
 
     # using the CNN model
     # model = keras.models.load_model("data/635-CNN.keras")
@@ -38,10 +58,8 @@ def main():
     #     },
     # )
 
-    # using the ViT model
-    model = keras.models.load_model("data/635-ViT.keras")
-
-    print(model.summary())
+    # # using the ViT model
+    # model = keras.models.load_model("data/635-ViT.keras")
 
     while True:
         ret, frame = cam.read()
@@ -105,9 +123,6 @@ def main():
             smoothed_box = previous_box.astype(np.int32)
 
             cv.drawContours(display_frame, [smoothed_box], 0, (0, 255, 0), 2)
-
-        cv.imshow("testing frame", thresh)
-        cv.imshow('Live Demo: Trading Card Classifier', display_frame)
         
         key = cv.waitKey(1) & 0xFF
 
@@ -132,26 +147,39 @@ def main():
 
             card_box = gray[y:y+height, x:x+width]
 
-            cv.imshow("card crop", card_box)
+            flipped = cv.flip(card_box, 1)
+            cv.imshow("card crop", flipped)
 
             # CNN expects shape (None, 700, 500, 1)
-            resized = cv.resize(card_box, (cf.SIZE_FEATURE_WIDTH, cf.SIZE_FEATURE_HEIGHT))
+            resized = cv.resize(flipped, (cf.SIZE_FEATURE_WIDTH, cf.SIZE_FEATURE_HEIGHT))
             normed = cv.normalize(resized, dst=None, alpha=0.0, beta=1.0, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
 
-            normed = np.expand_dims(normed, axis=-1)
-            input_image = np.expand_dims(normed, axis=0)
-
             # Get card prediction
-            prediction = model.predict(input_image, verbose=0)
-            predicted_class = np.argmax(prediction[0])
-            predicted_label = class_names[predicted_class]
+            # prediction = model.predict(input_image, verbose=0) 
+            # prediction = classifier.vit_classify(np.array(input_image))
+            predictions_cnn, predictions_vit, predictions_mobilevit = classifier.classify(np.array(normed))
 
-            # Get confidence
-            confidence = prediction[0][predicted_class]
+            # predicted_class = np.argmax(prediction[0])
+            # print(prediction[0])
+            # predicted_label = cf.card_type_map[predicted_class]
+            cnn_prediction = cf.card_type_map[np.argmax(predictions_cnn[0])]
+            vit_prediction = cf.card_type_map[np.argmax(predictions_vit[0])]
+            mobilevit_prediction = cf.card_type_map[np.argmax(predictions_mobilevit[0])]
 
-            print(f"Prediction: {predicted_label}")
-            print(f"Confidence: {confidence * 100:.2f}%")
+            # # Get confidence
+            # confidence = prediction[0][predicted_class]
 
+            # print(f"Prediction: {predicted_label}")
+            # print(f"Confidence: {confidence * 100:.2f}%")
+            # classifier.display_classify(np.array(input_image), ["Live Demo"])
+
+        cv.imshow("testing frame", thresh)
+
+        cv.putText(display_frame, f"CNN: {cnn_prediction}", (50, 50), cv.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 0), 2)
+        cv.putText(display_frame, f"ViT: {vit_prediction}", (50, 100), cv.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 0), 2)
+        cv.putText(display_frame, f"MobileViT: {mobilevit_prediction}", (50, 150), cv.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 0), 2)
+
+        cv.imshow('Live Demo: Trading Card Classifier', display_frame)
 
     cam.release()
     cv.destroyAllWindows()

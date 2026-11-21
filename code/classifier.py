@@ -33,13 +33,6 @@ import numpy as np
 # The size used for resizing
 SIZE_IMAGE_VIT = 224
 
-# Map of card class value to its name
-card_map = {
-    0: "Magic: The Gathering",
-    1: "Pokemon",
-    2: "Yu-Gi-Oh"
-}
-
 
 def cnn_classify(images):
     """
@@ -52,6 +45,7 @@ def cnn_classify(images):
         Numpy array of softmax predictions
     """
     model = keras.models.load_model(cf.PATH_MODEL_CNN)
+    images = np.expand_dims(images, axis=-1)
     return model.predict(images, verbose=0)
 
 
@@ -132,6 +126,11 @@ def display_classify(images, images_paths):
         images: Numpy array of 700x500 images
         image_paths: A list of the string image paths
     """
+    print(f"[INFO] Classifying image(s)...")
+
+    # Makes sure numpy shows all 3 decimal places minimum
+    np.set_printoptions(formatter={'float_kind': '{:0.3f}'.format})
+
     # Gets the softmax classification arrays from the models
     predictions_cnn, predictions_vit, predictions_mobilevit = classify(images)
 
@@ -141,9 +140,9 @@ def display_classify(images, images_paths):
         prediction_vit = np.round(predictions_vit[i] * 100, decimals=3)
         prediction_mobilevit = np.round(predictions_mobilevit[i] * 100, decimals=3)
         print(f"\nClassification Image #{i+1}: {images_paths[i]}")
-        print(f"\tCNN:          {prediction_cnn}, {card_map[np.argmax(prediction_cnn)]}")
-        print(f"\tViT:          {prediction_vit}, {card_map[np.argmax(prediction_vit)]}")
-        print(f"\tMobileViT:    {prediction_mobilevit}, {card_map[np.argmax(prediction_mobilevit)]}")
+        print(f"\tCNN:          {prediction_cnn}, {cf.card_type_map[np.argmax(prediction_cnn)]}")
+        print(f"\tViT:          {prediction_vit}, {cf.card_type_map[np.argmax(prediction_vit)]}")
+        print(f"\tMobileViT:    {prediction_mobilevit}, {cf.card_type_map[np.argmax(prediction_mobilevit)]}")
     print()
 
 
@@ -152,9 +151,6 @@ def main():
     Takes in a list of images and classifies them using the CNN, ViT, and MobileViT.
     """
     print(f"[INFO] Running application...")
-    
-    # Makes sure numpy shows all 3 decimal places minimum
-    np.set_printoptions(formatter={'float_kind': '{:0.3f}'.format})
 
     # Get a list of cards to classify (image paths)
     parser = argparse.ArgumentParser(prog="ML Project", description="Trading Card Classifier")
