@@ -83,7 +83,7 @@ def convert_images_to_vectors_2(temporary_filename: str, path: str, count: int |
     filenames = os.listdir(path)
     if count is None: count = len(filenames)
     filenames = filenames[:count]
-    card_vectors = np.memmap(temporary_filename, dtype=np.float32, mode='w+', shape=(count, cf.SIZE_FEATURE))
+    card_vectors = np.memmap(temporary_filename, dtype=np.float32, mode='w+', shape=(count, cf.SIZE_PADDED_FEATURE))
 
     # Convert count number of cards
     for i, filename in enumerate(filenames):
@@ -196,7 +196,7 @@ def train_test_validation_split(card_count: int, data_memmaps: list):
         for count, set in zip(split_counts, ["TRAIN", "TEST", "VALIDATION"]):
             # Creates the memmap for that card's set
             # map = np.memmap(getattr(cf, f"PATH_{set}_{card_key}"), dtype=np.float32, mode='w+', shape=(count, cf.SIZE_FEATURE))
-            map = np.memmap(getattr(cf, f"PATH_{set}_{card_key}_2"), dtype=np.float32, mode='w+', shape=(count, cf.SIZE_FEATURE))
+            map = np.memmap(getattr(cf, f"PATH_{set}_{card_key}_2"), dtype=np.float32, mode='w+', shape=(count, cf.SIZE_PADDED_FEATURE))
 
             # Copy data through chunks
             chunk_count, chunk_remainder = divmod(count, SIZE_CHUNK)
