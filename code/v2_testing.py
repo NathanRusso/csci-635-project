@@ -25,7 +25,7 @@ BRIGHTNESS_SHIFT = 40
 
 
 # Pull the greys scale cards
-card = cv.imread(".\data\yugioh\yugioh_000001.jpg", cv.IMREAD_GRAYSCALE)
+card = cv.imread("./data/yugioh/yugioh_000001.jpg", cv.IMREAD_GRAYSCALE)
 
 # Continue if there was an issue
 if card is None:

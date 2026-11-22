@@ -5,19 +5,19 @@ from tensorflow import keras
 from make_labeled_dataset import make_labeled_dataset
 
 # Train Memmaps
-train_mtg = np.memmap(cf.PATH_TRAIN_MTG, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE))
-train_pkm = np.memmap(cf.PATH_TRAIN_PKM, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE))
-train_ygo = np.memmap(cf.PATH_TRAIN_YGO, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE))
+train_mtg = np.memmap(cf.PATH_TRAIN_MTG_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_PADDED_FEATURE))
+train_pkm = np.memmap(cf.PATH_TRAIN_PKM_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_PADDED_FEATURE))
+train_ygo = np.memmap(cf.PATH_TRAIN_YGO_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_PADDED_FEATURE))
 
 # Test Memmaps
-test_mtg = np.memmap(cf.PATH_TEST_MTG, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_FEATURE))
-test_pkm = np.memmap(cf.PATH_TEST_PKM, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_FEATURE))
-test_ygo = np.memmap(cf.PATH_TEST_YGO, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_FEATURE))
+test_mtg = np.memmap(cf.PATH_TEST_MTG_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_PADDED_FEATURE))
+test_pkm = np.memmap(cf.PATH_TEST_PKM_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_PADDED_FEATURE))
+test_ygo = np.memmap(cf.PATH_TEST_YGO_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_PADDED_FEATURE))
 
 # Validation Memmaps
-val_mtg = np.memmap(cf.PATH_VALIDATION_MTG, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_FEATURE))
-val_pkm = np.memmap(cf.PATH_VALIDATION_PKM, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_FEATURE))
-val_ygo = np.memmap(cf.PATH_VALIDATION_YGO, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_FEATURE))
+val_mtg = np.memmap(cf.PATH_VALIDATION_MTG_2, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_PADDED_FEATURE))
+val_pkm = np.memmap(cf.PATH_VALIDATION_PKM_2, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_PADDED_FEATURE))
+val_ygo = np.memmap(cf.PATH_VALIDATION_YGO_2, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_PADDED_FEATURE))
 
 # size 32 batches proved to be the perfect balance between number of batches and time per batch.
 # Average of 700ms per step with size 32 and anything more is 2 seconds or more per batch
@@ -28,19 +28,14 @@ val_dataset_labeled = make_labeled_dataset( val_mtg, val_pkm, val_ygo, batch_siz
 
 test_dataset_labled = make_labeled_dataset( test_mtg, test_pkm, test_ygo, batch_size=32)
 
-train_steps = sum(
-                (len(data)+ 31) // 32
-                for data in (train_mtg, train_pkm, train_ygo)
-                )
-val_steps = sum(
-                (len(data)+ 31) // 32
-                for data in (val_mtg, val_pkm, val_ygo)
-                )
+batch_size = 32
+train_steps = (3 * cf.COUNT_TRAIN + batch_size - 1) // batch_size
+val_steps = (3 * cf.COUNT_VALIDATION + batch_size - 1) // batch_size
 
 kernel_regularizer = keras.regularizers.l2(1e-4)
 
 model = keras.Sequential([
-    keras.Input(shape=(cf.SIZE_FEATURE_HEIGHT, cf.SIZE_FEATURE_WIDTH, 1)),
+    keras.Input(shape=(cf.SIZE_PADDED_HEIGHT, cf.SIZE_PADDED_WIDTH, 1)),
     # we can further reduce image size which might save time but increase bias it is keras.layers.Resizing(175, 125),
     keras.layers.Resizing(175, 125),
     keras.layers.Conv2D(32, 3, activation='relu', kernel_regularizer=kernel_regularizer),
@@ -58,7 +53,7 @@ model.compile(optimizer='adam',
 
 callbacks =[
 keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.3, patience =2),
-keras.callbacks.ModelCheckpoint("data/635-CNN.keras", save_best_only=True, monitor="val_accuracy"),
+keras.callbacks.ModelCheckpoint(cf.PATH_MODEL_CNN_2, save_best_only=True, monitor="val_accuracy"),
 keras.callbacks.EarlyStopping(patience =3, monitor="val_loss", restore_best_weights=True)
 ]
 

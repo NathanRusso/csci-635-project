@@ -38,8 +38,8 @@ def make_labeled_dataset(mtg, pkm, ygo, batch_size=32,shuffle= False ):
                 [arrays[class_id][index] for class_id, index in batch]
             ).reshape(
                 -1,
-                cf.SIZE_FEATURE_HEIGHT,
-                cf.SIZE_FEATURE_WIDTH,
+                cf.SIZE_PADDED_HEIGHT,
+                cf.SIZE_PADDED_WIDTH,
                 1,
             )
             labels = batch[:, 0]
@@ -49,7 +49,7 @@ def make_labeled_dataset(mtg, pkm, ygo, batch_size=32,shuffle= False ):
         batches,
         output_signature=(
             tf.TensorSpec(
-                (None, cf.SIZE_FEATURE_HEIGHT, cf.SIZE_FEATURE_WIDTH, 1),
+                (None, cf.SIZE_PADDED_HEIGHT, cf.SIZE_PADDED_WIDTH, 1),
                 tf.float32,
             ),
             tf.TensorSpec((None,), tf.int32),
