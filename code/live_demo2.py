@@ -1,185 +1,93 @@
-# Logging Imports
-print("[INFO] Importing libraries...")
-import logging
-import os
-import warnings
-
-# Suppress warnings on run
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"    # Suppress TensorFlow startup messages
-warnings.filterwarnings("ignore")           # Suppress Python/Keras warnings
-logging.getLogger("tensorflow").setLevel(logging.ERROR)     # Suppress TensorFlow logging
-original_stderr = os.dup(2)                 # Temporarily suppress C++ startup output
-devnull = os.open(os.devnull, os.O_WRONLY)
-try:
-    os.dup2(devnull, 2)
-    # import tensorflow as tf     # Note: Takes a few seconds
-    import keras
-finally:
-    os.dup2(original_stderr, 2)
-    os.close(original_stderr)
-    os.close(devnull)
-
 import cv2 as cv
 import numpy as np
 
 import config as cf
 import classifier2
 
-ASPECT_RATIO = 2.5 / 3.5    # trading cards are about 5:7 or 2.5 x 3.5 inches
-TOLERANCE = 0.15             # allows for some size differences or tilt
-ALPHA = 0.7                 # box smoothing parameter
-MAX_MISSED_FRAMES = 30
+
+ASPECT_RATIO = 2.5 / 3.5
+BOX_SCALE = 0.85
+
+
+def get_fixed_box(frame_shape):
+    """Return a card-shaped box centered in the rightmost third of the frame."""
+    frame_height, frame_width = frame_shape[:2]
+    third_width = frame_width / 2.5
+
+    box_height = int(min(frame_height * BOX_SCALE,
+                         third_width * BOX_SCALE / ASPECT_RATIO))
+    box_width = int(box_height * ASPECT_RATIO)
+
+    center_x = int(frame_width * 2 / 3)
+    center_y = frame_height // 2
+    x1 = center_x - box_width // 2
+    y1 = center_y - box_height // 2
+    return x1, y1, x1 + box_width, y1 + box_height
+
 
 def main():
     cam = cv.VideoCapture(0)
-
     if not cam.isOpened():
         print("Error: Could not open camera.")
         return
 
-    previous_box = None
-    missed_frames = 0
-
     cnn_prediction = "None"
     vit_prediction = "None"
     mobilevit_prediction = "None"
-    clahe = cv.createCLAHE(clipLimit=1.0, tileGridSize=(12, 12))
 
-    while True:
-        ret, frame = cam.read()
-        if not ret: break
+    try:
+        while True:
+            ret, frame = cam.read()
+            if not ret:
+                break
 
-        # save frame to display later
-        frame = cv.flip(frame, 1)
-        display_frame = frame.copy()
+            # Mirror the preview so it behaves like a mirror.
+            frame = cv.flip(frame, 1)
+            gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+            display_frame = frame.copy()
 
-        # frame preprocessing
-        gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-        enhanced = clahe.apply(gray)
-        blur = cv.GaussianBlur(enhanced, (5, 5), 0)
-        thresh = cv.adaptiveThreshold(blur, 
-                                     255, 
-                                     cv.ADAPTIVE_THRESH_GAUSSIAN_C, 
-                                     cv.THRESH_BINARY_INV, 
-                                     blockSize=21,
-                                     C=8)
+            x1, y1, x2, y2 = get_fixed_box(frame.shape)
+            cv.rectangle(display_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            cv.putText(display_frame, "Align card here | SPACE: capture | Q: quit",
+                       (20, 35), cv.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 0), 2)
 
-        kernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
-        closed = cv.morphologyEx(thresh, cv.MORPH_CLOSE, kernel, iterations=1)
-        contours, _ = cv.findContours(closed, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-        
-        frame_area = frame.shape[0] * frame.shape[1]
-        min_size = frame_area * 0.1
-        max_size = frame_area * 0.6
+            cv.putText(display_frame, f"CNN: {cnn_prediction}", (20, 75),
+                       cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
+            cv.putText(display_frame, f"ViT: {vit_prediction}", (20, 110),
+                       cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
+            cv.putText(display_frame, f"MobileViT: {mobilevit_prediction}", (20, 145),
+                       cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
 
-        best_rect = None
-        best_score = 0
-        previous_center = None
-        previous_area = None
-        if previous_box is not None:
-            previous_center = np.mean(previous_box, axis=0)
-            previous_area = cv.contourArea(previous_box.astype(np.float32))
+            cv.imshow("Live Demo: Trading Card Classifier", display_frame)
+            key = cv.waitKey(1) & 0xFF
 
-        for contour in contours:
-            rect = cv.minAreaRect(contour)
-            (cx, cy), (w, h), _ = rect
-
-            if w == 0 or h == 0:
-                continue
-
-            area = w * h
-            if area < min_size or area > max_size:
-                continue
-
-            aspect_ratio = min(w, h) / max(w, h)
-            if abs(aspect_ratio - ASPECT_RATIO) >= TOLERANCE:
-                continue
-
-            # prefer upright bounding boxes
-            box = cv.boxPoints(rect)
-            edges = np.roll(box, -1, axis=0) - box
-            edge_lengths = np.linalg.norm(edges, axis=1)
-            longest_edge = edges[np.argmax(edge_lengths)]
-            edge_angle = np.degrees(np.arctan2(longest_edge[1], longest_edge[0])) % 180
-            vertical_deviation = abs(edge_angle - 90)
-            orientation_weight = np.exp(-0.5 * (vertical_deviation / 25) ** 2)
-            score = area * orientation_weight
-
-            # reduce large movement of box
-            if previous_center is not None and previous_area > 0:
-                distance = np.linalg.norm(np.array([cx, cy]) - previous_center)
-                movement_scale = max(np.sqrt(previous_area), 1)
-                if distance > 0.35 * movement_scale:
+            if key == ord('q'):
+                break
+            elif key == ord(' '):
+                # Capture the fixed box, without attempting to detect card edges.
+                card_crop = gray[y1:y2, x1:x2]
+                if card_crop.size == 0:
+                    print("Error: The fixed capture box is outside the camera frame.")
                     continue
-                score *= np.exp(-0.5 * (distance / (0.2 * movement_scale)) ** 2)
 
-            if score > best_score:
-                best_rect = rect
-                best_score = score
+                # The preview is mirrored, so unmirror the crop for classification.
+                card_crop = cv.flip(card_crop, 1)
+                cv.imshow("Captured card crop", card_crop)
 
-        if best_rect is not None:
-            box = cv.boxPoints(best_rect).astype(np.float32)
+                resized = cv.resize(card_crop, (cf.SIZE_PADDED_WIDTH, cf.SIZE_PADDED_HEIGHT))
+                normed = cv.normalize(resized, dst=None, alpha=0.0, beta=1.0, 
+                                      norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
 
-            if previous_box is None:
-                previous_box = box
-            else:
-                previous_box = ALPHA * box + (1 - ALPHA) * previous_box
+                predictions_cnn, predictions_vit, predictions_mobilevit = classifier2.classify(
+                    np.array(normed)
+                )
+                cnn_prediction = cf.card_type_map[np.argmax(predictions_cnn[0])]
+                vit_prediction = cf.card_type_map[np.argmax(predictions_vit[0])]
+                mobilevit_prediction = cf.card_type_map[np.argmax(predictions_mobilevit[0])]
 
-            missed_frames = 0
-            cv.drawContours(display_frame, [previous_box.astype(np.int32)], 0, (0, 255, 0), 2)
-        else:
-            missed_frames += 1
-            if missed_frames >= MAX_MISSED_FRAMES:
-                previous_box = None
-        
-        key = cv.waitKey(1) & 0xFF
-
-        # Press Q to quit
-        if key == ord('q'):
-            break
-
-        # Press Space to capture card
-        elif key == ord(' '):
-            if previous_box is None:
-                print("No card found!")
-                continue
-
-            print("Captured!")
-
-            min_x, min_y = np.min(previous_box, axis=0)
-            max_x, max_y = np.max(previous_box, axis=0)
-            x = int(min_x)
-            y = int(min_y)
-            width = int(max_x - min_x)
-            height = int(max_y - min_y)
-
-            card_box = gray[y:y+height, x:x+width]
-
-            flipped = cv.flip(card_box, 1)
-            cv.imshow("card crop", flipped)
-
-            # models expect shape (540, 740)
-            resized = cv.resize(flipped, (cf.SIZE_PADDED_WIDTH, cf.SIZE_PADDED_HEIGHT))
-            normed = cv.normalize(resized, dst=None, alpha=0.0, beta=1.0, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
-
-            # Get card prediction
-            predictions_cnn, predictions_vit, predictions_mobilevit = classifier2.classify(np.array(normed))
-
-            cnn_prediction = cf.card_type_map[np.argmax(predictions_cnn[0])]
-            vit_prediction = cf.card_type_map[np.argmax(predictions_vit[0])]
-            mobilevit_prediction = cf.card_type_map[np.argmax(predictions_mobilevit[0])]
-
-        cv.imshow("testing frame", thresh)
-
-        cv.putText(display_frame, f"CNN: {cnn_prediction}", (50, 50), cv.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 0), 2)
-        cv.putText(display_frame, f"ViT: {vit_prediction}", (50, 100), cv.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 0), 2)
-        cv.putText(display_frame, f"MobileViT: {mobilevit_prediction}", (50, 150), cv.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 0), 2)
-
-        cv.imshow('Live Demo: Trading Card Classifier', display_frame)
-
-    cam.release()
-    cv.destroyAllWindows()
-
+    finally:
+        cam.release()
+        cv.destroyAllWindows()
 
 
 if __name__ == "__main__":
