@@ -81,18 +81,29 @@ python .\code\download_models.py
 
 ### Running
 
-You can now classify images using the models in one of two ways: the CLI or the live demo.
+You can now classify trading card images using the models in two ways: the CLI and the live demo.
 
-1. To classify a list of images with the CLI, run...
+#### CLI Classifier
+
+The CLI takes in a list of image paths and classifies each card using all 3 models.
+There are 2 classifiers with their own set of models.
+Neither model was better than the other on all fronts.
+- Classifier #1 is the original, and its models were trained on perfect card scans/images.
+- Classifier #2 is the newer one, and its models were trained on altered card images which were changed to simulate real life conditions.
+
+1. To classify a list of images with the CLI #1 or #2, run either...
 
 ```bash
-python .\code\classifier.py --images image_1_path image_2_path ...
+python .\code\classifier1.py --images image_1_path image_2_path ...
+```
+```bash
+python .\code\classifier2.py --images image_1_path image_2_path ...
 ```
 
-- Example:
+- Example #1:
 
 ```bash
-python .\code\classifier.py --images .\data\mtg\mtg_000001.jpg .\data\pokemon\pokemon_000001.jpg .\data\yugioh\yugioh_000001.jpg
+python .\code\classifier1.py --images .\data\mtg\mtg_000001.jpg .\data\pokemon\pokemon_000001.jpg .\data\yugioh\yugioh_000001.jpg
 
 [INFO] Importing libraries...
 [INFO] Running application...
@@ -114,7 +125,33 @@ Classification Image #3: .\data\yugioh\yugioh_000001.jpg
 
 ```
 
-TODO
+- Example #2:
+
+```bash
+python .\code\classifier2.py --images .\data\mtg\mtg_000001.jpg .\data\pokemon\pokemon_000001.jpg .\data\yugioh\yugioh_000001.jpg
+
+[INFO] Importing libraries...
+[INFO] Running application...
+
+Classification Image #1: .\data\mtg\mtg_000001.jpg
+        CNN:          [99.991 0.008 0.001], Magic: The Gathering
+        ViT:          [100.000 0.000 0.000], Magic: The Gathering
+        MobileViT:    [99.897 0.000 0.103], Magic: The Gathering
+
+Classification Image #2: .\data\pokemon\pokemon_000001.jpg
+        CNN:          [0.109 99.881 0.010], Pokemon
+        ViT:          [0.000 100.000 0.000], Pokemon
+        MobileViT:    [0.000 100.000 0.000], Pokemon
+
+Classification Image #3: .\data\yugioh\yugioh_000001.jpg
+        CNN:          [0.079 0.000 99.921], Yu-Gi-Oh
+        ViT:          [0.000 0.000 100.000], Yu-Gi-Oh
+        MobileViT:    [0.009 0.000 99.991], Yu-Gi-Oh
+
+```
+
+#### Live Demo
+
 2. To classify a live image captured from your camera, run ...
 
 ```bash

@@ -23,7 +23,7 @@ import cv2 as cv
 import numpy as np
 
 import config as cf
-import classifier
+import classifier1
 # from keras_vision.MobileViT_v2.base_layers import ConvLayer, InvertedResidualBlock
 # from keras_vision.MobileViT_v2.mobile_vit_v2_block import MobileViT_v2_Block
 
@@ -157,7 +157,7 @@ def main():
             # Get card prediction
             # prediction = model.predict(input_image, verbose=0) 
             # prediction = classifier.vit_classify(np.array(input_image))
-            predictions_cnn, predictions_vit, predictions_mobilevit = classifier.classify(np.array(normed))
+            predictions_cnn, predictions_vit, predictions_mobilevit = classifier1.classify(np.array(normed))
 
             # predicted_class = np.argmax(prediction[0])
             # print(prediction[0])
