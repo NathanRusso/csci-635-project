@@ -87,7 +87,7 @@ You can now classify trading card images using the models in two ways: the CLI a
 
 The CLI takes in a list of image paths and classifies each card using all 3 models.
 There are 2 classifiers with their own set of models.
-Neither model was better than the other on all fronts.
+Neither classifier was better than the other on all fronts.
 - Classifier #1 is the original, and its models were trained on perfect card scans/images.
 - Classifier #2 is the newer one, and its models were trained on altered card images which were changed to simulate real life conditions.
 
@@ -107,6 +107,7 @@ python .\code\classifier1.py --images .\data\mtg\mtg_000001.jpg .\data\pokemon\p
 
 [INFO] Importing libraries...
 [INFO] Running application...
+[INFO] Classifying image(s)...
 
 Classification Image #1: .\data\mtg\mtg_000001.jpg
         CNN:          [99.991 0.008 0.001], Magic: The Gathering
@@ -114,14 +115,14 @@ Classification Image #1: .\data\mtg\mtg_000001.jpg
         MobileViT:    [99.897 0.000 0.103], Magic: The Gathering
 
 Classification Image #2: .\data\pokemon\pokemon_000001.jpg
-        CNN:          [0.109 99.881 0.010], Pokemon
-        ViT:          [0.000 100.000 0.000], Pokemon
-        MobileViT:    [0.000 100.000 0.000], Pokemon
+        CNN:          [0.298 99.687 0.014], Pokemon
+        ViT:          [0.026 99.973 0.002], Pokemon
+        MobileViT:    [0.000 99.977 0.023], Pokemon
 
 Classification Image #3: .\data\yugioh\yugioh_000001.jpg
-        CNN:          [0.079 0.000 99.921], Yu-Gi-Oh
+        CNN:          [0.130 0.001 99.869], Yu-Gi-Oh
         ViT:          [0.000 0.000 100.000], Yu-Gi-Oh
-        MobileViT:    [0.009 0.000 99.991], Yu-Gi-Oh
+        MobileViT:    [0.008 0.000 99.992], Yu-Gi-Oh
 
 ```
 
@@ -132,27 +133,33 @@ python .\code\classifier2.py --images .\data\mtg\mtg_000001.jpg .\data\pokemon\p
 
 [INFO] Importing libraries...
 [INFO] Running application...
+[INFO] Classifying image(s)...
 
 Classification Image #1: .\data\mtg\mtg_000001.jpg
-        CNN:          [99.991 0.008 0.001], Magic: The Gathering
-        ViT:          [100.000 0.000 0.000], Magic: The Gathering
-        MobileViT:    [99.897 0.000 0.103], Magic: The Gathering
+        CNN:          [75.832 24.109 0.059], Magic: The Gathering
+        ViT:          [5.511 94.489 0.000], Pokemon
+        MobileViT:    [94.605 2.421 2.974], Magic: The Gathering
 
 Classification Image #2: .\data\pokemon\pokemon_000001.jpg
-        CNN:          [0.109 99.881 0.010], Pokemon
-        ViT:          [0.000 100.000 0.000], Pokemon
-        MobileViT:    [0.000 100.000 0.000], Pokemon
+        CNN:          [1.064 98.892 0.044], Pokemon
+        ViT:          [3.031 96.931 0.038], Pokemon
+        MobileViT:    [0.000 99.993 0.007], Pokemon
 
 Classification Image #3: .\data\yugioh\yugioh_000001.jpg
-        CNN:          [0.079 0.000 99.921], Yu-Gi-Oh
-        ViT:          [0.000 0.000 100.000], Yu-Gi-Oh
-        MobileViT:    [0.009 0.000 99.991], Yu-Gi-Oh
+        CNN:          [6.638 91.103 2.259], Pokemon
+        ViT:          [3.525 96.474 0.000], Pokemon
+        MobileViT:    [0.000 0.002 99.997], Yu-Gi-Oh
 
 ```
 
 #### Live Demo
 
-2. To classify a live image captured from your camera, run ...
+The live demo tracks card-shaped objects and draws a green box around them.
+When you see a green box that lines up fairly well with the card, click the space bar to start the classification.
+The demo will then display its predations on the screen.
+It uses classifier #2.
+
+2. To classify a live image captured from your camera, run...
 
 ```bash
 python .\code\live_demo.py.
