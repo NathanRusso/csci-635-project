@@ -23,9 +23,7 @@ import cv2 as cv
 import numpy as np
 
 import config as cf
-import classifier1
-# from keras_vision.MobileViT_v2.base_layers import ConvLayer, InvertedResidualBlock
-# from keras_vision.MobileViT_v2.mobile_vit_v2_block import MobileViT_v2_Block
+import classifier2
 
 ASPECT_RATIO = 2.5 / 3.5    # trading cards are about 5:7 or 2.5 x 3.5 inches
 TOLERANCE = 0.15             # allows for some size differences or tilt
@@ -44,23 +42,6 @@ def main():
     vit_prediction = "None"
     mobilevit_prediction = "None"
 
-    # using the CNN model
-    # model = keras.models.load_model("data/635-CNN.keras")
-
-    # using the Mobile ViT model
-    # got a ton of warnings/errors, not sure why
-    # model = keras.models.load_model(
-    #     "data/635-MobileVit_v2.keras",
-    #     custom_objects={
-    #         "ConvLayer": ConvLayer,
-    #         "InvertedResidualBlock": InvertedResidualBlock,
-    #         "MobileViT_v2_Block": MobileViT_v2_Block,
-    #     },
-    # )
-
-    # # using the ViT model
-    # model = keras.models.load_model("data/635-ViT.keras")
-
     while True:
         ret, frame = cam.read()
         if not ret: break
@@ -72,21 +53,12 @@ def main():
         # frame preprocessing
         gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
         blur = cv.GaussianBlur(gray, (5, 5), 0)
-        # _, frame = cv.threshold(frame, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
         thresh = cv.adaptiveThreshold(blur, 
                                      255, 
                                      cv.ADAPTIVE_THRESH_GAUSSIAN_C, 
                                      cv.THRESH_BINARY_INV, 
                                      blockSize=21,
                                      C=8)
-
-        # kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5))
-        # thresh = cv.morphologyEx(thresh, cv.MORPH_CLOSE, kernel)
-        # thresh = cv.morphologyEx(thresh, cv.MORPH_OPEN, kernel)
-        
-        # edges = cv.Canny(blur, 100, 200)
-        # kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5))
-        # thresh = cv.morphologyEx(edges, cv.MORPH_CLOSE, kernel)
 
         contours, _ = cv.findContours(thresh, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
         frame_area = frame.shape[0] * frame.shape[1]
@@ -150,28 +122,16 @@ def main():
             flipped = cv.flip(card_box, 1)
             cv.imshow("card crop", flipped)
 
-            # CNN expects shape (None, 700, 500, 1)
-            resized = cv.resize(flipped, (cf.SIZE_FEATURE_WIDTH, cf.SIZE_FEATURE_HEIGHT))
+            # models expect shape (540, 740)
+            resized = cv.resize(flipped, (cf.SIZE_PADDED_WIDTH, cf.SIZE_PADDED_HEIGHT))
             normed = cv.normalize(resized, dst=None, alpha=0.0, beta=1.0, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
 
             # Get card prediction
-            # prediction = model.predict(input_image, verbose=0) 
-            # prediction = classifier.vit_classify(np.array(input_image))
-            predictions_cnn, predictions_vit, predictions_mobilevit = classifier1.classify(np.array(normed))
+            predictions_cnn, predictions_vit, predictions_mobilevit = classifier2.classify(np.array(normed))
 
-            # predicted_class = np.argmax(prediction[0])
-            # print(prediction[0])
-            # predicted_label = cf.card_type_map[predicted_class]
             cnn_prediction = cf.card_type_map[np.argmax(predictions_cnn[0])]
             vit_prediction = cf.card_type_map[np.argmax(predictions_vit[0])]
             mobilevit_prediction = cf.card_type_map[np.argmax(predictions_mobilevit[0])]
-
-            # # Get confidence
-            # confidence = prediction[0][predicted_class]
-
-            # print(f"Prediction: {predicted_label}")
-            # print(f"Confidence: {confidence * 100:.2f}%")
-            # classifier.display_classify(np.array(input_image), ["Live Demo"])
 
         cv.imshow("testing frame", thresh)
 
