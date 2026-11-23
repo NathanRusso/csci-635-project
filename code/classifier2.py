@@ -167,18 +167,9 @@ def main():
             print(f"[ERROR] Could not get image located at {path}!")
             continue
         images_paths_selected.append(path)
-        if image.shape != (cf.SIZE_FEATURE_HEIGHT, cf.SIZE_FEATURE_WIDTH):
-            image = cv.resize(image, (cf.SIZE_FEATURE_WIDTH, cf.SIZE_FEATURE_HEIGHT), interpolation=cv.INTER_AREA)
+        if image.shape != (cf.SIZE_PADDED_HEIGHT, cf.SIZE_PADDED_WIDTH):
+            image = cv.resize(image, (cf.SIZE_PADDED_WIDTH, cf.SIZE_PADDED_HEIGHT), interpolation=cv.INTER_AREA)
         image = cv.normalize(src=image, dst=None, alpha=0.0, beta=1.0, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
-        image = cv.copyMakeBorder(
-            image,
-            cf.SIZE_PADDING,
-            cf.SIZE_PADDING,
-            cf.SIZE_PADDING,
-            cf.SIZE_PADDING,
-            cv.BORDER_CONSTANT,
-            value=0.5,
-        )
         images.append(image)
     images = np.array(images)
 
