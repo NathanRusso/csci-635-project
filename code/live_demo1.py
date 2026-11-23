@@ -27,8 +27,10 @@ import classifier2
 
 ASPECT_RATIO = 2.5 / 3.5    # trading cards are about 5:7 or 2.5 x 3.5 inches
 TOLERANCE = 0.15             # allows for some size differences or tilt
-ALPHA = 0.7                 # box smoothing parameter
-
+ALPHA = 0.15                # low weight on each new box to reduce jitter
+STABLE_CONFIRM_FRAMES = 10   # consecutive detections needed to trust a box
+MAX_MISSED_FRAMES = 15       # keep a confirmed box through brief detection gaps
+CAPTURE_MAX_MISSED_FRAMES = 3
 
 def main():
     cam = cv.VideoCapture(0)
@@ -38,9 +40,13 @@ def main():
         return
 
     previous_box = None
+    missed_frames = 0
+    stable_frames = 0
+
     cnn_prediction = "None"
     vit_prediction = "None"
     mobilevit_prediction = "None"
+    clahe = cv.createCLAHE(clipLimit=1.0, tileGridSize=(12, 12))
 
     while True:
         ret, frame = cam.read()
@@ -52,7 +58,8 @@ def main():
 
         # frame preprocessing
         gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-        blur = cv.GaussianBlur(gray, (5, 5), 0)
+        enhanced = clahe.apply(gray)
+        blur = cv.GaussianBlur(enhanced, (5, 5), 0)
         thresh = cv.adaptiveThreshold(blur, 
                                      255, 
                                      cv.ADAPTIVE_THRESH_GAUSSIAN_C, 
@@ -60,41 +67,96 @@ def main():
                                      blockSize=21,
                                      C=8)
 
-        contours, _ = cv.findContours(thresh, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        kernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
+        closed = cv.morphologyEx(thresh, cv.MORPH_CLOSE, kernel, iterations=1)
+        contours, _ = cv.findContours(closed, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        
         frame_area = frame.shape[0] * frame.shape[1]
         min_size = frame_area * 0.1
         max_size = frame_area * 0.6
-        min_angle = -110
-        max_angle = -80
+
+        best_rect = None
+        best_score = 0
+        previous_center = None
+        previous_area = None
+        if previous_box is not None:
+            previous_center = np.mean(previous_box, axis=0)
+            previous_area = cv.contourArea(previous_box.astype(np.float32))
+
         for contour in contours:
             rect = cv.minAreaRect(contour)
-            _, (w, h), angle = rect
-            
-            if angle < min_angle or angle > max_angle:
+            (cx, cy), (w, h), _ = rect
+
+            if w == 0 or h == 0:
                 continue
-            
-            # check size of rectangle
+
             area = w * h
             if area < min_size or area > max_size:
                 continue
 
-            # check aspect ratio (about 5:7)
             aspect_ratio = min(w, h) / max(w, h)
-            if np.abs(aspect_ratio - ASPECT_RATIO) >= TOLERANCE:
+            if abs(aspect_ratio - ASPECT_RATIO) >= TOLERANCE:
                 continue
 
-            # draw bounding box
+            # prefer upright bounding boxes
             box = cv.boxPoints(rect)
-            box = np.int64(box)
+            edges = np.roll(box, -1, axis=0) - box
+            edge_lengths = np.linalg.norm(edges, axis=1)
+            longest_edge = edges[np.argmax(edge_lengths)]
+            edge_angle = np.degrees(np.arctan2(longest_edge[1], longest_edge[0])) % 180
+            vertical_deviation = abs(edge_angle - 90)
+            orientation_weight = np.exp(-0.5 * (vertical_deviation / 25) ** 2)
+            score = area * orientation_weight
+
+            # reduce large movement of box
+            if previous_center is not None and previous_area > 0:
+                distance = np.linalg.norm(np.array([cx, cy]) - previous_center)
+                movement_scale = max(np.sqrt(previous_area), 1)
+                if distance > 0.35 * movement_scale:
+                    continue
+                score *= np.exp(-0.5 * (distance / (0.2 * movement_scale)) ** 2)
+
+            if score > best_score:
+                best_rect = rect
+                best_score = score
+
+        if best_rect is not None:
+            box = cv.boxPoints(best_rect).astype(np.float32)
 
             if previous_box is None:
-                previous_box = box.astype(np.float32)
+                previous_box = box
+                stable_frames = 1
             else:
-                previous_box = (ALPHA * box.astype(np.float32) + (1 - ALPHA) * previous_box)
+                center_distance = np.linalg.norm(np.mean(box, axis=0) - np.mean(previous_box, axis=0))
+                previous_area = cv.contourArea(previous_box.astype(np.float32))
+                consistency_limit = 0.08 * max(np.sqrt(previous_area), 1)
 
-            smoothed_box = previous_box.astype(np.int32)
+                # Before locking on, restart confirmation if the candidate
+                # moves too much from the previous frame's candidate.
+                if stable_frames < STABLE_CONFIRM_FRAMES and center_distance > consistency_limit:
+                    previous_box = box
+                    stable_frames = 1
+                else:
+                    previous_box = ALPHA * box + (1 - ALPHA) * previous_box
+                    stable_frames = min(stable_frames + 1, STABLE_CONFIRM_FRAMES)
 
-            cv.drawContours(display_frame, [smoothed_box], 0, (0, 255, 0), 2)
+            missed_frames = 0
+        else:
+            missed_frames += 1
+            if stable_frames < STABLE_CONFIRM_FRAMES:
+                # A pending detection must be consecutive to become stable.
+                previous_box = None
+                stable_frames = 0
+            if missed_frames >= MAX_MISSED_FRAMES:
+                previous_box = None
+                stable_frames = 0
+
+        if previous_box is not None:
+            if stable_frames >= STABLE_CONFIRM_FRAMES:
+                color = (0, 255, 0) if missed_frames <= CAPTURE_MAX_MISSED_FRAMES else (0, 191, 255)
+            else:
+                color = (0, 191, 255)
+            cv.drawContours(display_frame, [previous_box.astype(np.int32)], 0, color, 2)
         
         key = cv.waitKey(1) & 0xFF
 
@@ -104,8 +166,10 @@ def main():
 
         # Press Space to capture card
         elif key == ord(' '):
-            if previous_box is None:
-                print("No card found!")
+            if (previous_box is None
+                    or stable_frames < STABLE_CONFIRM_FRAMES
+                    or missed_frames > CAPTURE_MAX_MISSED_FRAMES):
+                print("No stable, recent card detection. Hold the card steady and try again.")
                 continue
 
             print("Captured!")
