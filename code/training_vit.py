@@ -3,17 +3,16 @@ File to create and train a Vision Transformer (ViT) model.
 """
 import config as cf
 import numpy as np
-import math
-from enum import Enum
 import keras
 import keras_hub
 import tensorflow as tf
+import math
 
 
 # Patch Count, Feature Sizes, and more
 COUNT_PATCH = 196  # (224/16) x (224/16) = 14 x 14 = 196
 SIZE_FEATURE_COMPRESSED = 224
-SIZE_BATCH = 32
+SIZE_BATCH = 8
 SIZE_PATCH = 16
 EPOCHS_FROZEN = 3
 EPOCHS_UNFROZEN = 7
@@ -35,6 +34,26 @@ val_mtg = np.memmap(cf.PATH_VALIDATION_MTG_2, dtype=np.float32, mode="r", shape=
 val_pkm = np.memmap(cf.PATH_VALIDATION_PKM_2, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_PADDED_FEATURE))
 val_ygo = np.memmap(cf.PATH_VALIDATION_YGO_2, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_PADDED_FEATURE))
 
+train_mtg_original = np.memmap(
+    cf.PATH_TRAIN_MTG,
+    dtype=np.float32,
+    mode="r",
+    shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE),
+)
+
+train_pkm_original = np.memmap(
+    cf.PATH_TRAIN_PKM,
+    dtype=np.float32,
+    mode="r",
+    shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE),
+)
+
+train_ygo_original = np.memmap(
+    cf.PATH_TRAIN_YGO,
+    dtype=np.float32,
+    mode="r",
+    shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE),
+)
 
 def train_generator():
     """
@@ -44,6 +63,30 @@ def train_generator():
         yield train_mtg[i], cf.CardType.MTG.value
         yield train_pkm[i], cf.CardType.PKM.value
         yield train_ygo[i], cf.CardType.YGO.value
+
+        # Add some padding to the original images
+        mtg_original = np.pad(
+            train_mtg_original[i].reshape(700, 500),
+            ((20, 20), (20, 20)),
+            mode="constant",
+        ).flatten()
+
+        pkm_original = np.pad(
+            train_pkm_original[i].reshape(700, 500),
+            ((20, 20), (20, 20)),
+            mode="constant",
+        ).flatten()
+
+        ygo_original = np.pad(
+            train_ygo_original[i].reshape(700, 500),
+            ((20, 20), (20, 20)),
+            mode="constant",
+        ).flatten()
+
+        
+        yield mtg_original, cf.CardType.MTG.value
+        yield pkm_original, cf.CardType.PKM.value
+        yield ygo_original, cf.CardType.YGO.value
 
 
 def validation_generator():
@@ -70,10 +113,9 @@ def image_resizer(images, labels):
     """
     Resizes the images for the ViT.
 
-    1. (399_600,) to (740, 540, 1)
-    2. (740, 540, 1) to (224, 224)
-    3. (224, 224, 1) [0, 1] to (224, 224, 1) [-1, 1]
-    4. (224, 224, 1) to (224, 224, 3) where the 3 channels are the same.
+    1. (740, 540, 1) to (224, 224)
+    2. (224, 224, 1) [0, 1] to (224, 224, 1) [-1, 1]
+    3. (224, 224, 1) to (224, 224, 3) where the 3 channels are the same.
 
     Args:
         images: TensorFlow Tensor containing a batch of images.
@@ -109,7 +151,7 @@ def create_datasets_vit():
     ).batch(SIZE_BATCH
     ).map(image_resizer, num_parallel_calls=1
     ).prefetch(1
-    ).apply(tf.data.experimental.assert_cardinality(math.ceil(cf.COUNT_TRAIN * 3 / SIZE_BATCH)))
+    ).apply(tf.data.experimental.assert_cardinality(math.ceil(cf.COUNT_TRAIN * 6 / SIZE_BATCH)))
 
     # Set up the validation dataset
     validation_dataset = tf.data.Dataset.from_generator(validation_generator, output_signature=output_generator_signature
@@ -196,7 +238,7 @@ def create_train_vit():
     print(f"Test Accuracy: {test_accuracy:.3%}")
 
     # Saves the model to be used later.
-    model.save(cf.PATH_MODEL_VIT_2)
+    model.save(cf.PATH_MODEL_VIT_3)
 
 
 if __name__ == "__main__":

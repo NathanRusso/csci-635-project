@@ -3,6 +3,7 @@ import tensorflow as tf
 import numpy as np
 from tensorflow import keras
 from make_labeled_dataset import make_labeled_dataset
+from make_labeled_dataset_2 import make_labeled_dataset_2
 
 # Train Memmaps
 train_mtg = np.memmap(cf.PATH_TRAIN_MTG_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_PADDED_FEATURE))
@@ -19,10 +20,42 @@ val_mtg = np.memmap(cf.PATH_VALIDATION_MTG_2, dtype=np.float32, mode="r", shape=
 val_pkm = np.memmap(cf.PATH_VALIDATION_PKM_2, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_PADDED_FEATURE))
 val_ygo = np.memmap(cf.PATH_VALIDATION_YGO_2, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_PADDED_FEATURE))
 
+train_mtg_original = np.memmap(
+   cf.PATH_TRAIN_MTG,
+   dtype=np.float32,
+   mode="r",
+   shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE),
+)
+
+
+train_pkm_original = np.memmap(
+   cf.PATH_TRAIN_PKM,
+   dtype=np.float32,
+   mode="r",
+   shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE),
+)
+
+
+train_ygo_original = np.memmap(
+   cf.PATH_TRAIN_YGO,
+   dtype=np.float32,
+   mode="r",
+   shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE),
+)
+
+
 # size 32 batches proved to be the perfect balance between number of batches and time per batch.
 # Average of 700ms per step with size 32 and anything more is 2 seconds or more per batch
 
-train_dataset_labeled = make_labeled_dataset(train_mtg, train_pkm, train_ygo, batch_size=32, shuffle=True)
+train_dataset_labeled = make_labeled_dataset_2(
+   [train_mtg_original, train_mtg],
+   [train_pkm_original, train_pkm],
+   [train_ygo_original, train_ygo],
+   batch_size=16,
+   shuffle=True,
+   padding=(20, 0),
+)
+
 
 val_dataset_labeled = make_labeled_dataset( val_mtg, val_pkm, val_ygo, batch_size=32)
 
@@ -53,7 +86,7 @@ model.compile(optimizer='adam',
 
 callbacks =[
 keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.3, patience =2),
-keras.callbacks.ModelCheckpoint(cf.PATH_MODEL_CNN_2, save_best_only=True, monitor="val_accuracy"),
+keras.callbacks.ModelCheckpoint(cf.PATH_MODEL_CNN_3, save_best_only=True, monitor="val_accuracy"),
 keras.callbacks.EarlyStopping(patience =3, monitor="val_loss", restore_best_weights=True)
 ]
 
