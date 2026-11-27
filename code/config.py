@@ -27,7 +27,6 @@ PATH_MODEL_CNN_3 = 'data/635-CNN-3.keras'
 PATH_MODEL_VIT_3 = 'data/635-ViT-3.keras'
 PATH_MODEL_MOBILEVIT_3 = 'data/635-MobileVit_v2-3.keras'
 
-
 # Original Data Paths
 PATH_MTG = 'data/mtg'
 PATH_PKM = 'data/pokemon'

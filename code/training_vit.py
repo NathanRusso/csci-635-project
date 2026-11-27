@@ -12,81 +12,63 @@ import math
 # Patch Count, Feature Sizes, and more
 COUNT_PATCH = 196  # (224/16) x (224/16) = 14 x 14 = 196
 SIZE_FEATURE_COMPRESSED = 224
-SIZE_BATCH = 8
+SIZE_SHUFFLE = 32
+SIZE_BATCH = 16
 SIZE_PATCH = 16
 EPOCHS_FROZEN = 3
 EPOCHS_UNFROZEN = 7
 EPOCHS_TEST = 1     # Replace EPOCHS_FROZEN and EPOCHS_UNFROZEN with this for testing
 
+# Train Memmaps #1
+train_mtg_1 = np.memmap(cf.PATH_TRAIN_MTG, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE))
+train_pkm_1 = np.memmap(cf.PATH_TRAIN_PKM, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE))
+train_ygo_1 = np.memmap(cf.PATH_TRAIN_YGO, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE))
 
-# Train Memmaps
-train_mtg = np.memmap(cf.PATH_TRAIN_MTG_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_PADDED_FEATURE))
-train_pkm = np.memmap(cf.PATH_TRAIN_PKM_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_PADDED_FEATURE))
-train_ygo = np.memmap(cf.PATH_TRAIN_YGO_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_PADDED_FEATURE))
+# Test Memmaps #1
+test_mtg_1 = np.memmap(cf.PATH_TEST_MTG, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_FEATURE))
+test_pkm_1 = np.memmap(cf.PATH_TEST_PKM, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_FEATURE))
+test_ygo_1 = np.memmap(cf.PATH_TEST_YGO, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_FEATURE))
 
-# Test Memmaps
-test_mtg = np.memmap(cf.PATH_TEST_MTG_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_PADDED_FEATURE))
-test_pkm = np.memmap(cf.PATH_TEST_PKM_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_PADDED_FEATURE))
-test_ygo = np.memmap(cf.PATH_TEST_YGO_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_PADDED_FEATURE))
+# Validation Memmaps #1
+val_mtg_1 = np.memmap(cf.PATH_VALIDATION_MTG, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_FEATURE))
+val_pkm_1 = np.memmap(cf.PATH_VALIDATION_PKM, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_FEATURE))
+val_ygo_1 = np.memmap(cf.PATH_VALIDATION_YGO, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_FEATURE))
 
-# Validation Memmaps
-val_mtg = np.memmap(cf.PATH_VALIDATION_MTG_2, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_PADDED_FEATURE))
-val_pkm = np.memmap(cf.PATH_VALIDATION_PKM_2, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_PADDED_FEATURE))
-val_ygo = np.memmap(cf.PATH_VALIDATION_YGO_2, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_PADDED_FEATURE))
+# Train Memmaps #2
+train_mtg_2 = np.memmap(cf.PATH_TRAIN_MTG_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_PADDED_FEATURE))
+train_pkm_2 = np.memmap(cf.PATH_TRAIN_PKM_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_PADDED_FEATURE))
+train_ygo_2 = np.memmap(cf.PATH_TRAIN_YGO_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TRAIN, cf.SIZE_PADDED_FEATURE))
 
-train_mtg_original = np.memmap(
-    cf.PATH_TRAIN_MTG,
-    dtype=np.float32,
-    mode="r",
-    shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE),
-)
+# Test Memmaps #2
+test_mtg_2 = np.memmap(cf.PATH_TEST_MTG_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_PADDED_FEATURE))
+test_pkm_2 = np.memmap(cf.PATH_TEST_PKM_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_PADDED_FEATURE))
+test_ygo_2 = np.memmap(cf.PATH_TEST_YGO_2, dtype=np.float32, mode="r", shape=(cf.COUNT_TEST, cf.SIZE_PADDED_FEATURE))
 
-train_pkm_original = np.memmap(
-    cf.PATH_TRAIN_PKM,
-    dtype=np.float32,
-    mode="r",
-    shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE),
-)
+# Validation Memmaps #2
+val_mtg_2 = np.memmap(cf.PATH_VALIDATION_MTG_2, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_PADDED_FEATURE))
+val_pkm_2 = np.memmap(cf.PATH_VALIDATION_PKM_2, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_PADDED_FEATURE))
+val_ygo_2 = np.memmap(cf.PATH_VALIDATION_YGO_2, dtype=np.float32, mode="r", shape=(cf.COUNT_VALIDATION, cf.SIZE_PADDED_FEATURE))
 
-train_ygo_original = np.memmap(
-    cf.PATH_TRAIN_YGO,
-    dtype=np.float32,
-    mode="r",
-    shape=(cf.COUNT_TRAIN, cf.SIZE_FEATURE),
-)
 
 def train_generator():
     """
     Train data generator used for data selection/iteration.
     """
     for i in range(cf.COUNT_TRAIN):
-        yield train_mtg[i], cf.CardType.MTG.value
-        yield train_pkm[i], cf.CardType.PKM.value
-        yield train_ygo[i], cf.CardType.YGO.value
+        # Pad the original #1 datasets
+        mtg_1 = np.pad(train_mtg_1[i].reshape(700, 500), ((20, 20), (20, 20)), mode="constant").flatten()
+        pkm_1 = np.pad(train_pkm_1[i].reshape(700, 500), ((20, 20), (20, 20)), mode="constant").flatten()
+        ygo_1 = np.pad(train_ygo_1[i].reshape(700, 500), ((20, 20), (20, 20)), mode="constant").flatten()        
 
-        # Add some padding to the original images
-        mtg_original = np.pad(
-            train_mtg_original[i].reshape(700, 500),
-            ((20, 20), (20, 20)),
-            mode="constant",
-        ).flatten()
+        # Yield the original #1 datasets
+        yield mtg_1, cf.CardType.MTG.value
+        yield pkm_1, cf.CardType.PKM.value
+        yield ygo_1, cf.CardType.YGO.value
 
-        pkm_original = np.pad(
-            train_pkm_original[i].reshape(700, 500),
-            ((20, 20), (20, 20)),
-            mode="constant",
-        ).flatten()
-
-        ygo_original = np.pad(
-            train_ygo_original[i].reshape(700, 500),
-            ((20, 20), (20, 20)),
-            mode="constant",
-        ).flatten()
-
-        
-        yield mtg_original, cf.CardType.MTG.value
-        yield pkm_original, cf.CardType.PKM.value
-        yield ygo_original, cf.CardType.YGO.value
+        # Yield the transformed #2 datasets
+        yield train_mtg_2[i], cf.CardType.MTG.value
+        yield train_pkm_2[i], cf.CardType.PKM.value
+        yield train_ygo_2[i], cf.CardType.YGO.value
 
 
 def validation_generator():
@@ -94,9 +76,20 @@ def validation_generator():
     Validation data generator used for data selection/iteration.
     """
     for i in range(cf.COUNT_VALIDATION):
-        yield val_mtg[i], cf.CardType.MTG.value
-        yield val_pkm[i], cf.CardType.PKM.value
-        yield val_ygo[i], cf.CardType.YGO.value
+        # Pad the original #1 datasets
+        mtg_1 = np.pad(val_mtg_1[i].reshape(700, 500), ((20, 20), (20, 20)), mode="constant").flatten()
+        pkm_1 = np.pad(val_pkm_1[i].reshape(700, 500), ((20, 20), (20, 20)), mode="constant").flatten()
+        ygo_1 = np.pad(val_ygo_1[i].reshape(700, 500), ((20, 20), (20, 20)), mode="constant").flatten()
+
+        # Yield the original #1 datasets
+        yield mtg_1, cf.CardType.MTG.value
+        yield pkm_1, cf.CardType.PKM.value
+        yield ygo_1, cf.CardType.YGO.value
+
+        # Yield the transformed #2 datasets
+        yield val_mtg_2[i], cf.CardType.MTG.value
+        yield val_pkm_2[i], cf.CardType.PKM.value
+        yield val_ygo_2[i], cf.CardType.YGO.value
 
 
 def test_generator():
@@ -104,9 +97,20 @@ def test_generator():
     Test data generator used for data selection/iteration.
     """
     for i in range(cf.COUNT_TEST):
-        yield test_mtg[i], cf.CardType.MTG.value
-        yield test_pkm[i], cf.CardType.PKM.value
-        yield test_ygo[i], cf.CardType.YGO.value
+        # Pad the original #1 datasets
+        mtg_1 = np.pad(test_mtg_1[i].reshape(700, 500), ((20, 20), (20, 20)), mode="constant").flatten()
+        pkm_1 = np.pad(test_pkm_1[i].reshape(700, 500), ((20, 20), (20, 20)), mode="constant").flatten()
+        ygo_1 = np.pad(test_ygo_1[i].reshape(700, 500), ((20, 20), (20, 20)), mode="constant").flatten()
+
+        # Yield the original #1 datasets
+        yield mtg_1, cf.CardType.MTG.value
+        yield pkm_1, cf.CardType.PKM.value
+        yield ygo_1, cf.CardType.YGO.value
+
+        # Yield the transformed #2 datasets
+        yield test_mtg_2[i], cf.CardType.MTG.value
+        yield test_pkm_2[i], cf.CardType.PKM.value
+        yield test_ygo_2[i], cf.CardType.YGO.value
 
 
 def image_resizer(images, labels):
@@ -124,7 +128,7 @@ def image_resizer(images, labels):
     Returns:
         A tuple containing the reshaped images Tensor and the corresponding labels Tensor.
     """
-    images = tf.reshape(images, shape=(-1, cf.SIZE_PADDED_HEIGHT, cf.SIZE_PADDED_WIDTH, 1))
+    images = tf.expand_dims(images, axis=-1)
     images = tf.image.resize(images, size=(SIZE_FEATURE_COMPRESSED, SIZE_FEATURE_COMPRESSED), method="area")
     images = images * 2 - 1
     images = tf.image.grayscale_to_rgb(images)
@@ -147,7 +151,7 @@ def create_datasets_vit():
 
     # Set up the train dataset
     train_dataset = tf.data.Dataset.from_generator(train_generator, output_signature=output_generator_signature
-    ).shuffle(buffer_size=SIZE_BATCH, reshuffle_each_iteration=True
+    ).shuffle(buffer_size=SIZE_SHUFFLE, reshuffle_each_iteration=True
     ).batch(SIZE_BATCH
     ).map(image_resizer, num_parallel_calls=1
     ).prefetch(1
@@ -158,14 +162,14 @@ def create_datasets_vit():
     ).batch(SIZE_BATCH
     ).map(image_resizer, num_parallel_calls=1
     ).prefetch(1
-    ).apply(tf.data.experimental.assert_cardinality(math.ceil(cf.COUNT_VALIDATION * 3 / SIZE_BATCH)))
+    ).apply(tf.data.experimental.assert_cardinality(math.ceil(cf.COUNT_VALIDATION * 6 / SIZE_BATCH)))
 
     # Set up the train dataset
     test_dataset = tf.data.Dataset.from_generator(test_generator, output_signature=output_generator_signature
     ).batch(SIZE_BATCH
     ).map(image_resizer, num_parallel_calls=1
     ).prefetch(1
-    ).apply(tf.data.experimental.assert_cardinality(math.ceil(cf.COUNT_TEST * 3 / SIZE_BATCH)))
+    ).apply(tf.data.experimental.assert_cardinality(math.ceil(cf.COUNT_TEST * 6 / SIZE_BATCH)))
 
     return train_dataset, test_dataset, validation_dataset
 
