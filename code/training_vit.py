@@ -56,19 +56,19 @@ def train_generator():
     """
     for i in range(cf.COUNT_TRAIN):
         # Pad the original #1 datasets
-        mtg_1 = np.pad(train_mtg_1[i].reshape(700, 500), ((20, 20), (20, 20)), mode="constant").flatten()
-        pkm_1 = np.pad(train_pkm_1[i].reshape(700, 500), ((20, 20), (20, 20)), mode="constant").flatten()
-        ygo_1 = np.pad(train_ygo_1[i].reshape(700, 500), ((20, 20), (20, 20)), mode="constant").flatten()        
+        mtg_1 = np.pad(train_mtg_1[i], ((0, 49600)), mode="constant")
+        pkm_1 = np.pad(train_pkm_1[i], ((0, 49600)), mode="constant")
+        ygo_1 = np.pad(train_ygo_1[i], ((0, 49600)), mode="constant")        
 
         # Yield the original #1 datasets
-        yield mtg_1, cf.CardType.MTG.value
-        yield pkm_1, cf.CardType.PKM.value
-        yield ygo_1, cf.CardType.YGO.value
+        yield mtg_1, cf.CardType.MTG.value, 1
+        yield pkm_1, cf.CardType.PKM.value, 1
+        yield ygo_1, cf.CardType.YGO.value, 1
 
         # Yield the transformed #2 datasets
-        yield train_mtg_2[i], cf.CardType.MTG.value
-        yield train_pkm_2[i], cf.CardType.PKM.value
-        yield train_ygo_2[i], cf.CardType.YGO.value
+        yield train_mtg_2[i], cf.CardType.MTG.value, 2
+        yield train_pkm_2[i], cf.CardType.PKM.value, 2
+        yield train_ygo_2[i], cf.CardType.YGO.value, 2
 
 
 def validation_generator():
@@ -77,19 +77,19 @@ def validation_generator():
     """
     for i in range(cf.COUNT_VALIDATION):
         # Pad the original #1 datasets
-        mtg_1 = np.pad(val_mtg_1[i].reshape(700, 500), ((20, 20), (20, 20)), mode="constant").flatten()
-        pkm_1 = np.pad(val_pkm_1[i].reshape(700, 500), ((20, 20), (20, 20)), mode="constant").flatten()
-        ygo_1 = np.pad(val_ygo_1[i].reshape(700, 500), ((20, 20), (20, 20)), mode="constant").flatten()
+        mtg_1 = np.pad(val_mtg_1[i], ((0, 49600)), mode="constant")
+        pkm_1 = np.pad(val_pkm_1[i], ((0, 49600)), mode="constant")
+        ygo_1 = np.pad(val_ygo_1[i], ((0, 49600)), mode="constant")
 
         # Yield the original #1 datasets
-        yield mtg_1, cf.CardType.MTG.value
-        yield pkm_1, cf.CardType.PKM.value
-        yield ygo_1, cf.CardType.YGO.value
+        yield mtg_1, cf.CardType.MTG.value, 1
+        yield pkm_1, cf.CardType.PKM.value, 1
+        yield ygo_1, cf.CardType.YGO.value, 1
 
         # Yield the transformed #2 datasets
-        yield val_mtg_2[i], cf.CardType.MTG.value
-        yield val_pkm_2[i], cf.CardType.PKM.value
-        yield val_ygo_2[i], cf.CardType.YGO.value
+        yield val_mtg_2[i], cf.CardType.MTG.value, 2
+        yield val_pkm_2[i], cf.CardType.PKM.value, 2
+        yield val_ygo_2[i], cf.CardType.YGO.value, 2
 
 
 def test_generator():
@@ -98,26 +98,26 @@ def test_generator():
     """
     for i in range(cf.COUNT_TEST):
         # Pad the original #1 datasets
-        mtg_1 = np.pad(test_mtg_1[i].reshape(700, 500), ((20, 20), (20, 20)), mode="constant").flatten()
-        pkm_1 = np.pad(test_pkm_1[i].reshape(700, 500), ((20, 20), (20, 20)), mode="constant").flatten()
-        ygo_1 = np.pad(test_ygo_1[i].reshape(700, 500), ((20, 20), (20, 20)), mode="constant").flatten()
+        mtg_1 = np.pad(test_mtg_1[i], ((0, 49600)), mode="constant")
+        pkm_1 = np.pad(test_pkm_1[i], ((0, 49600)), mode="constant")
+        ygo_1 = np.pad(test_ygo_1[i], ((0, 49600)), mode="constant")
 
         # Yield the original #1 datasets
-        yield mtg_1, cf.CardType.MTG.value
-        yield pkm_1, cf.CardType.PKM.value
-        yield ygo_1, cf.CardType.YGO.value
+        yield mtg_1, cf.CardType.MTG.value, 1
+        yield pkm_1, cf.CardType.PKM.value, 1
+        yield ygo_1, cf.CardType.YGO.value, 1
 
         # Yield the transformed #2 datasets
-        yield test_mtg_2[i], cf.CardType.MTG.value
-        yield test_pkm_2[i], cf.CardType.PKM.value
-        yield test_ygo_2[i], cf.CardType.YGO.value
+        yield test_mtg_2[i], cf.CardType.MTG.value, 2
+        yield test_pkm_2[i], cf.CardType.PKM.value, 2
+        yield test_ygo_2[i], cf.CardType.YGO.value, 2
 
 
-def image_resizer(images, labels):
+def image_resizer(images, labels, delimiters):
     """
     Resizes the images for the ViT.
 
-    1. (740, 540, 1) to (224, 224)
+    1. (740, 540, 1) or (700, 500, 1) to (224, 224)
     2. (224, 224, 1) [0, 1] to (224, 224, 1) [-1, 1]
     3. (224, 224, 1) to (224, 224, 3) where the 3 channels are the same.
 
@@ -128,8 +128,23 @@ def image_resizer(images, labels):
     Returns:
         A tuple containing the reshaped images Tensor and the corresponding labels Tensor.
     """
-    images = tf.expand_dims(images, axis=-1)
-    images = tf.image.resize(images, size=(SIZE_FEATURE_COMPRESSED, SIZE_FEATURE_COMPRESSED), method="area")
+
+    def resize_image(args):
+        image, delimiter = args
+        image = tf.cond(
+            tf.equal(delimiter, 1),
+            true_fn=lambda: tf.reshape(image[:cf.SIZE_FEATURE], (700, 500, 1)),
+            false_fn=lambda: tf.reshape(image, (740, 540, 1))
+        )
+        image = tf.image.resize(image, size=(SIZE_FEATURE_COMPRESSED, SIZE_FEATURE_COMPRESSED), method="area")
+
+        return image
+
+    images = tf.map_fn(
+        resize_image,
+        (images, delimiters),
+        fn_output_signature=tf.TensorSpec(shape=(SIZE_FEATURE_COMPRESSED, SIZE_FEATURE_COMPRESSED, 1), dtype=tf.float32)
+    )
     images = images * 2 - 1
     images = tf.image.grayscale_to_rgb(images)
     return images, labels
@@ -143,9 +158,10 @@ def create_datasets_vit():
     Returns:
         A 3-tuple containing the train, test, and validation datasets.
     """
-    # Output Generator Signature: [(399_600 features), (1 target class)]
+    # Output Generator Signature: [(399_600 features), (1 target class), (1 delimiter class)]
     output_generator_signature = (
         tf.TensorSpec(shape=(cf.SIZE_PADDED_FEATURE,), dtype=tf.float32),
+        tf.TensorSpec(shape=(), dtype=tf.int32),
         tf.TensorSpec(shape=(), dtype=tf.int32)
     )
 
