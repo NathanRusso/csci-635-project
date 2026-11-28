@@ -194,7 +194,6 @@ def create_train_vit():
     """
     Loads a pretrained ViT and trains it on our card data.
     Saves the model to the data file.
-    https://www.kaggle.com/models/keras/vit/keras/vit_base_patch16_224_imagenet
     """
 
     # Callback to stop the model if validation loss stops improving (prevent overfitting)

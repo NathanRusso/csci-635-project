@@ -6,6 +6,7 @@ https://pypi.org/project/keras-vision/
 
 ## Vision Transformer Links
 
+- https://huggingface.co/keras/vit_base_patch16_224_imagenet/tree/main
 - https://www.kaggle.com/models/keras/vit/keras/vit_base_patch16_224_imagenet
 - https://keras.io/examples/vision/image_classification_with_vision_transformer/
 - https://keras.io/keras_hub/api/models/vit/vit_image_classifier/
